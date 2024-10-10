@@ -6,6 +6,7 @@
 #include "array.h"
 #include "object.h"
 #include "thread.h"
+#include "utils.h"
 
 typedef enum _EFUFileType {
     EFU_FILE_TYPE_NOT_EXIST,
@@ -41,5 +42,5 @@ FUBytes* fu_file_read_all(FUFile* file);
 
 FUFileStream* fu_file_stream_new_from_file(FUFile* file);
 bool fu_file_stream_read_async(FUFileStream* fileStream, size_t size, FUAsyncReadyCallback cb, void* usd);
-void* fu_file_stream_read_finish(FUFileStream* fileStream, FUAsyncResult* res);
+void* fu_file_stream_read_finish(FUFileStream* fileStream, FUAsyncResult* res, FUError** error);
 #endif // _FU_FILE_H_

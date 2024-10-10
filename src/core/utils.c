@@ -365,4 +365,34 @@ wchar_t* fu_utf8_to_wchar(const char* str, size_t* len)
     return wstr;
 }
 
+FUError* fu_error_new_from_code(int code)
+{
+    LPWSTR msgBuff = NULL;
+    size_t len = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), msgBuff, 0, NULL);
+    if (len) {
+        char* msg = fu_wchar_to_utf8(msgBuff, &len);
+        LocalFree(msgBuff);
+        if (FU_LIKELY(msg))
+            return fu_error_new_take(code, &msg);
+    }
+    FUError* err = fu_malloc(sizeof(FUError));
+    err->message = fu_strdup("Unknown error");
+    err->code = code;
+    return err;
+}
+
 #endif
+
+FUError* fu_error_new_take(int code, char** msg)
+{
+    FUError* err = fu_malloc(sizeof(FUError));
+    err->message = fu_steal_pointer(msg);
+    err->code = code;
+    return err;
+}
+
+void fu_error_free(FUError* err)
+{
+    fu_free(err->message);
+    fu_free(err);
+}

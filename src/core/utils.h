@@ -10,6 +10,15 @@
 #include <windows.h>
 #endif
 
+typedef struct _FUError {
+    int code;
+    char* message;
+} FUError;
+
+FUError* fu_error_new_take(int code, char** msg);
+FUError* fu_error_new_from_code(int code);
+void fu_error_free(FUError* err);
+
 #define fu_continue_if_fail(expr) \
     do {                          \
         if (!(expr))              \

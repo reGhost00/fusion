@@ -17,23 +17,26 @@
 #include "../core/file.h"
 #include "../core/utils.h"
 
-typedef HANDLE TFd;
-
+typedef HANDLE TVFSHwnd;
+typedef DWORD TVFSErrorCode;
+typedef struct _TVFSArgs TVFSArgs;
+typedef void (*TVFSAsyncCallback)(TVFSArgs* args, TVFSErrorCode error, void* usd);
 typedef struct _TOverlapped {
     OVERLAPPED overlapped;
-    LPOVERLAPPED_COMPLETION_ROUTINE cb;
+    TVFSArgs* args;
+    TVFSAsyncCallback cb;
     void* usd;
 } TOverlapped;
 
-typedef struct _TVFSArgs {
+struct _TVFSArgs {
     /** (打开)对存在或不存在的文件或设备执行的操作 */
     DWORD flags;
     /** (打开)文件或设备属性和标志 */
     DWORD mode;
     /** (打开)文件或设备 */
-    char* path;
+    wchar_t* path;
     /** 文件句柄 */
-    TFd hwnd;
+    TVFSHwnd hwnd;
 
     /** (查询)文件类型 */
     EFUFileType type;
@@ -46,38 +49,39 @@ typedef struct _TVFSArgs {
     const void* buffWrite;
 
     // 异步相关参数
-    TOverlapped* asd;
-} TVFSArgs;
+    // TVFSAsyncCallback callback;
+    TOverlapped* ovd;
+    // void* usd;
+    // TOverlapped* asd;
+};
 
-typedef bool (*TVFSFunc)(TVFSArgs* args);
+// typedef bool (*TVFSFunc)(TVFSArgs* args);
+// typedef struct _TVFS {
+//     TVFSFunc query_type;
+//     TVFSFunc open;
+//     TVFSFunc read;
+//     TVFSFunc read_async;
+//     TVFSFunc write;
+// } TVFS;
 
-typedef struct _TVFS {
-    TVFSFunc query_type;
-    TVFSFunc open;
-    TVFSFunc read;
-    TVFSFunc read_async;
-    TVFSFunc write;
-} TVFS;
-
-static TVFSArgs* t_vfs_args_new()
+static TVFSArgs* t_vfs_args_new(const char* path)
 {
+    size_t len;
     TVFSArgs* args = fu_malloc0(sizeof(TVFSArgs));
-    args->asd = fu_malloc0(sizeof(TOverlapped));
+    args->path = fu_utf8_to_wchar(path, &len);
     args->mode = FILE_ATTRIBUTE_NORMAL;
     return args;
 }
 
 static void t_vfs_args_free(TVFSArgs* args)
 {
-    fu_free(args->asd);
+    fu_free(args->path);
     fu_free(args);
 }
 
 static bool t_vfs_query_type(TVFSArgs* args)
 {
-    size_t len;
-    wchar_t* wp = fu_utf8_to_wchar(args->path, &len);
-    DWORD attr = GetFileAttributesW(wp);
+    DWORD attr = GetFileAttributesW(args->path);
     if (INVALID_FILE_ATTRIBUTES != attr) {
         if (FILE_ATTRIBUTE_DIRECTORY == attr)
             args->type = EFU_FILE_TYPE_DIRECTORY;
@@ -86,19 +90,16 @@ static bool t_vfs_query_type(TVFSArgs* args)
         else
             args->type = EFU_FILE_TYPE_REGULAR;
     }
-    fu_free(wp);
     return true;
 }
 
 static bool t_vfs_open(TVFSArgs* args)
 {
-    size_t len;
-    wchar_t* wp = fu_utf8_to_wchar(args->path, &len);
-    bool rev = 0 < (args->hwnd = CreateFileW(wp, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, args->flags, args->mode, NULL));
-    if (!rev)
+    bool rev = 0 < (args->hwnd = CreateFileW(args->path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, args->flags, args->mode, NULL));
+    if (!rev) {
         fu_winapi_print_error(__func__);
+    }
 
-    fu_free(wp);
     return rev;
 }
 
@@ -125,17 +126,34 @@ static bool t_vfs_read(TVFSArgs* args)
  * @return true
  * @return false
  */
-static bool t_vfs_read_async(TVFSArgs* args)
+
+static void t_vfs_read_finish(DWORD error, DWORD bytes, LPOVERLAPPED overlapped)
 {
-    fu_winapi_return_val_if_fail(ReadFileEx(args->hwnd, args->buffRead, args->size, (LPOVERLAPPED)args->asd, args->asd->cb), false);
+    TOverlapped* ovd = (TOverlapped*)overlapped;
+    TVFSArgs* args = ovd->args;
+    args->size = bytes;
+    ovd->cb(args, error, ovd->usd);
+}
+
+static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
+{
+    TOverlapped* overlapped = args->ovd = fu_malloc0(sizeof(TOverlapped));
+    overlapped->overlapped.hEvent = CreateEvent(NULL, true, false, NULL);
+    overlapped->args = args;
+    overlapped->cb = cb;
+    overlapped->usd = usd;
+    if (!ReadFileEx(args->hwnd, args->buffRead, args->size, (LPOVERLAPPED)overlapped, t_vfs_read_finish)) {
+        CloseHandle(overlapped->overlapped.hEvent);
+        fu_free(overlapped);
+        return false;
+    }
     return true;
 }
 
 static bool t_vfs_async_check(TVFSArgs* args)
 {
-    // return WAIT_OBJECT_0 == WaitForSingleObjectEx(args->asd->overlapped.hEvent, 1, false);
-    DWORD rev = WaitForSingleObjectEx(args->asd->overlapped.hEvent, 0, true);
-    // printf("%d\n", rev);
+    // return WAIT_OBJECT_0 == WaitForSingleObjectEx(args->ovd->overlapped.hEvent, 10, true);
+    DWORD rev = WaitForSingleObjectEx(args->ovd->overlapped.hEvent, 0, true);
     if (FU_UNLIKELY(WAIT_FAILED == rev)) {
         fu_winapi_print_error(__func__);
         return true;
@@ -145,7 +163,13 @@ static bool t_vfs_async_check(TVFSArgs* args)
 
 static void t_vfs_async_finish(TVFSArgs* args)
 {
-    SetEvent(args->asd->overlapped.hEvent);
+    SetEvent(args->ovd->overlapped.hEvent);
+}
+
+static void t_vfs_async_cleanup(TVFSArgs* args)
+{
+    CloseHandle(args->ovd->overlapped.hEvent);
+    fu_free(args->ovd);
 }
 
 static bool t_vfs_write(TVFSArgs* args)
@@ -158,24 +182,24 @@ static bool t_vfs_write(TVFSArgs* args)
 
 // static void t_vfs_class_init(FUObjectClass* oc) { }
 
-static TVFS* t_vfs_new()
-{
-    // TVFS* vfs = (TVFS*)fu_object_new(T_TYPE_VFS);
-    TVFS* vfs = (TVFS*)fu_malloc(sizeof(TVFS));
-    vfs->open = t_vfs_open;
-    vfs->query_type = t_vfs_query_type;
-    vfs->read = t_vfs_read;
-    vfs->read_async = t_vfs_read_async;
-    vfs->write = t_vfs_write;
-    return vfs;
-}
+// static TVFS* t_vfs_new()
+// {
+//     // TVFS* vfs = (TVFS*)fu_object_new(T_TYPE_VFS);
+//     TVFS* vfs = (TVFS*)fu_malloc(sizeof(TVFS));
+//     vfs->open = t_vfs_open;
+//     vfs->query_type = t_vfs_query_type;
+//     vfs->read = t_vfs_read;
+//     vfs->read_async = t_vfs_read_async;
+//     vfs->write = t_vfs_write;
+//     return vfs;
+// }
 
-static void t_vfs_free(TVFS* vfs, TFd fd)
-{
-    if (fd)
-        CloseHandle(fd);
-    fu_free(vfs);
-}
+// static void t_vfs_free(TVFS* vfs, TFd fd)
+// {
+//     if (fd)
+//         CloseHandle(fd);
+//     fu_free(vfs);
+// }
 
 #endif // _TVFS_WINDOW_H_
 #endif // FU_OS_WINDOW

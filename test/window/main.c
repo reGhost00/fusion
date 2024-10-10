@@ -145,8 +145,13 @@ static bool app_scroll_callback(FUWindow* win, const FUScrollEvent* ev, TApp* us
 
 static void app_read_callback(FUFileStream* stream, FUAsyncResult* res)
 {
-    char* str = fu_file_stream_read_finish(stream, res);
-    printf("%s\n", str);
+    FUError* error = NULL;
+    char* str = fu_file_stream_read_finish(stream, res, &error);
+    if (error) {
+        printf("%s FAILED: %s\n", __func__, error->message);
+        fu_error_free(error);
+    }
+    printf("%s %s\n", __func__, str);
     fu_object_unref(stream);
     fu_free(str);
 }
