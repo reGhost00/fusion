@@ -1,0 +1,9 @@
+[submodule "libs/glfw"]
+	path = libs/glfw
+	url = https://github.com/glfw/glfw
+[submodule "libs/mimalloc"]
+	path = libs/mimalloc
+	url = https://github.com/microsoft/mimalloc.git
+[submodule "libs/libevent"]
+	path = libs/libevent
+	url = https://github.com/libevent/libevent.git
