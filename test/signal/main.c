@@ -67,9 +67,9 @@ static TApp* t_app_new()
     return (TApp*)fu_app_init(fu_object_new(T_TYPE_APP));
 }
 
-static void app_close_callback(FUObject* obj, TApp* usd)
+static void app_resize_callback(FUObject* obj, const FUSize* size, TApp* usd)
 {
-    // usd->ifContinue = false;
+    fu_surface_update_viewport_size(usd->surface);
 }
 
 static bool app_timer_tick_callback(TApp* usd)
@@ -87,6 +87,13 @@ static bool app_timer_tick_callback(TApp* usd)
     fu_context_lineto2(ctx, 100, 200);
     fu_context_lineto2(ctx, 200, 200);
     fu_context_lineto2(ctx, 200, 100);
+    fu_context_path2_fill(ctx, &color);
+
+    fu_context_path2_start(ctx);
+    fu_context_moveto2(ctx, 300, 300);
+    fu_context_lineto2(ctx, 200, 400);
+    fu_context_lineto2(ctx, 300, 500);
+    fu_context_lineto2(ctx, 400, 400);
     fu_context_path2_fill(ctx, &color);
     fu_context_submit(ctx);
     fu_surface_draw(usd->surface);
@@ -111,6 +118,7 @@ static void app_active_callback(FUObject* obj, TApp* usd)
     usd->window = fu_window_new((FUApp*)usd, cfg);
     usd->surface = fu_surface_new(usd->window);
     fu_signal_connect((FUObject*)usd->window, "close", (FUSignalCallback0)app_window_close_callback, usd);
+    fu_signal_connect_with_param((FUObject*)usd->window, "resize", (FUSignalCallback1)app_resize_callback, usd);
     fu_source_set_callback(tm, (FUSourceCallback)app_timer_tick_callback, usd);
     fu_window_take_source(usd->window, &tm);
     fu_window_config_free(cfg);

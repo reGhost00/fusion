@@ -13,12 +13,12 @@ void main()
 
 
 
-    static const char* const defFragmentShaders[] = {
-        "#version 330 core\n"
-        "in vec4 rgb;\n"
-        "out vec4 color;\n"
-        "void main()\n"
-        "{\n"
-        "   color = rgb;\n"
-        "}\0"
-    };
+#shader fragment
+#version 330 core
+in vec4 rgb;
+out vec4 color;
+void main()
+{
+    color = rgb;
+}
+

@@ -265,10 +265,10 @@ static void t_shader_free(TShader* shader)
 //
 // Surface
 static bool ifSurfaceInit = false;
-static void fu_gl_surface_resize_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
+// static void fu_gl_surface_resize_callback(GLFWwindow* window, int width, int height)
+// {
+//     glViewport(0, 0, width, height);
+// }
 
 static void fu_gl_surface_finalize(FUGLSurface* surface)
 {
@@ -290,16 +290,6 @@ static void fu_gl_surface_class_init(FUObjectClass* oc)
 FUGLSurface* fu_gl_surface_new(FUWindow* window)
 {
     fu_return_val_if_fail(window, NULL);
-    // int succ;
-    // char buff[DEF_MSG_BUFF_LEN];
-    // uint32_t vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    // fu_retrun_if_shader_compile_failed(vertexShader, defVertexShaders[E_DEF_SHADER_NORMAL], succ, buff);
-
-    // uint32_t fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    // fu_retrun_if_shader_compile_failed(fragmentShader, defFragmentShaders[E_DEF_SHADER_NORMAL], succ, buff);
-
-    // uint32_t shaderProgram = glCreateProgram();
-    // fu_return_if_program_link_failed(shaderProgram, vertexShader, fragmentShader, succ, buff);
     TShader* shader = t_shaders_new(E_DEF_SHADER_NORMAL);
     if (!shader)
         return NULL;
@@ -324,12 +314,19 @@ FUGLSurface* fu_gl_surface_new(FUWindow* window)
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glViewport(0, 0, surface->width, surface->height);
-        glfwSetFramebufferSizeCallback(window->window, fu_gl_surface_resize_callback);
+        // glfwSetFramebufferSizeCallback(window->window, fu_gl_surface_resize_callback);
     }
 
     // glDeleteShader(vertexShader);
     // glDeleteShader(fragmentShader);
     return surface;
+}
+
+void fu_gl_surface_update_viewport_size(FUGLSurface* surface)
+{
+    fu_return_if_fail(surface);
+    glfwGetFramebufferSize(surface->window->window, &surface->width, &surface->height);
+    glViewport(0, 0, surface->width, surface->height);
 }
 
 void fu_gl_surface_draw(FUGLSurface* surface)

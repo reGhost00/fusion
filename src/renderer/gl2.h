@@ -25,6 +25,7 @@ FU_DECLARE_TYPE(FUGLContext, fu_gl_context)
 // void fu_gl_renderer_swap(FUGLRenderer* renderer);
 typedef struct _FUWindow FUWindow;
 FUGLSurface* fu_gl_surface_new(FUWindow* window);
+void fu_gl_surface_update_viewport_size(FUGLSurface* surface);
 void fu_gl_surface_draw(FUGLSurface* surface);
 
 FUGLContext* fu_gl_context_new(FUGLSurface* surface);
@@ -47,6 +48,7 @@ void fu_gl_context_lineto2(FUGLContext* context, uint32_t x, uint32_t y);
 
 #define FUSurface FUGLSurface
 #define fu_surface_new(rd) fu_gl_surface_new(rd)
+#define fu_surface_update_viewport_size(srf) fu_gl_surface_update_viewport_size(srf);
 #define fu_surface_draw(srf) fu_gl_surface_draw(srf)
 
 #define FUContext FUGLContext
