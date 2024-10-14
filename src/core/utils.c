@@ -1,5 +1,7 @@
 
+#include <stdarg.h>
 #include <stdatomic.h>
+#include <string.h>
 
 #include "utils.h"
 #include <mimalloc.h>
@@ -36,8 +38,8 @@ static void fu_check_memory_leak()
 
 static void* fu_track_memory(void* p, size_t size)
 {
-    if (FU_UNLIKELY(!defMemoryTableMutex.handle))
-        fu_mutex_init(&defMemoryTableMutex);
+    // if (FU_UNLIKELY(!defMemoryTableMutex))
+    //     fu_mutex_init(&defMemoryTableMutex);
     fu_mutex_lock(&defMemoryTableMutex);
     if (!atomic_fetch_add_explicit(&defMemoryTableCount, 1, memory_order_relaxed) && !ifMemoryTableInit) {
         sc_map_init_64(&defMemoryTable, 0, 0);
@@ -380,7 +382,14 @@ FUError* fu_error_new_from_code(int code)
     err->code = code;
     return err;
 }
-
+#else
+FUError* fu_error_new_from_code(int code)
+{
+    FUError* err = fu_malloc(sizeof(FUError));
+    err->message = fu_strdup(strerror(code));
+    err->code = code;
+    return err;
+}
 #endif
 
 FUError* fu_error_new_take(int code, char** msg)

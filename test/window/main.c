@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <locale.h>
-
+#include <string.h>
 // thrid party
 #include <fusion.h>
 
@@ -166,7 +166,7 @@ static void app_active_callback(FUObject* obj, void* usd)
     app->window = fu_window_new((FUApp*)app, cfg);
 
     size_t len = 1600;
-    FUFile* file = fu_file_open_for_path("D:\\dev\\Game\\GameBox_cairo\\src\\generic\\miniaudio.h");
+    FUFile* file = fu_file_open_for_path("/home/warmsnow/下载/OmegaOptions.bak");
     // FUArray* arr = fu_array_new(sizeof(char));
     // FUTimer* timer = fu_timer_new();
     // fu_timer_start(timer);
@@ -184,7 +184,8 @@ static void app_active_callback(FUObject* obj, void* usd)
     //  async read file
     FUFileStream* stream = fu_file_stream_new_from_file(file);
     fu_file_stream_read_async(stream, 1660, (FUAsyncReadyCallback)app_read_callback, app);
-
+    pthread_mutex_t mutex;
+    pthread_mutex_init(&mutex, NULL);
     // len = fu_timer_measure(timer);
     // // char* str = (char*)fu_array_free(arr, false);
     // size_t size;

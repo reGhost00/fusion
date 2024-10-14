@@ -1,9 +1,10 @@
 #include <fusion.h>
 #include <locale.h>
 #include <stdio.h>
+#ifdef FU_OS_WINDOW
 #include <tchar.h>
 #include <windows.h>
-
+#endif
 typedef struct _TApp {
     FUObject parent;
     FUMainLoop* loop;

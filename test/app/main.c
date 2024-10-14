@@ -2,6 +2,7 @@
 #include <fusion.h>
 #include <locale.h>
 #include <stdio.h>
+#ifdef FU_OS_WINDOW
 #include <tchar.h>
 
 typedef struct _TApp {
@@ -76,3 +77,10 @@ int main(int argc, char* argv[])
     printf("bye\n");
     return 0;
 }
+#else
+int main(int argc, char* argv[])
+{
+    printf("bye\n");
+    return 0;
+}
+#endif

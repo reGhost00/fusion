@@ -4,7 +4,7 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 #include <stddef.h>
-
+#include <string.h>
 #define _FU_PLATFORM_GLFW_ENABLE_
 #define _FU_RENDERER_GL_ENABLE_
 #include "../_inner.h"

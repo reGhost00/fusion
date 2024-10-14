@@ -2,6 +2,7 @@
 #define _FU_HASH_H_
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "types.h"
 

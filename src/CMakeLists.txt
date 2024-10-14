@@ -20,9 +20,15 @@ function(create_resources dir output)
 endfunction()
 
 
-create_resources("${CMAKE_CURRENT_SOURCE_DIR}\\asset" "${CMAKE_CURRENT_SOURCE_DIR}\\asset\\res.h")
+# create_resources("${CMAKE_CURRENT_SOURCE_DIR}\\asset" "${CMAKE_CURRENT_SOURCE_DIR}\\asset\\res.h")
 
 
 file(GLOB_RECURSE SRCS "*.c" "*.h")
 add_library(${PROJECT_NAME} STATIC ${SRCS})
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad mimalloc-static)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad mimalloc-static pthread uring)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_link_libraries(${PROJECT_NAME} PRIVATE glfw glad mimalloc-static)
+else()
+    message("Unsupported platform: ${CMAKE_SYSTEM_NAME}")
+endif()

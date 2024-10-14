@@ -18,6 +18,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW lib only")
 set(GLFW_INSTALL OFF CACHE BOOL "GLFW lib only")
 set(GLAD_GL "")
 add_subdirectory("libs/glfw")
+include_directories("libs/glfw/include")
 #
 # libevent
 # set(EVENT__LIBRARY_TYPE "STATIC" CACHE STRING "static")

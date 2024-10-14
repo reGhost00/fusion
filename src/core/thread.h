@@ -7,16 +7,28 @@
 #ifdef FU_OS_WINDOW
 #include <windows.h>
 #define callback_env_t TP_CALLBACK_ENVIRON
+typedef struct _FUMutex {
+    HANDLE handle;
+} FUMutex;
+
+#define fu_mutex_init(m)                              \
+    do {                                              \
+        (m)->handle = CreateMutex(NULL, FALSE, NULL); \
+    } while (0)
+#define fu_mutex_lock(m) WaitForSingleObject((m)->handle, INFINITE)
+#define fu_mutex_unlock(m) ReleaseMutex((m)->handle)
+#define fu_mutex_destroy(m) CloseHandle((m)->handle)
 #else
-#define FU_THREAD_NOT_SUPPORT
+#include <pthread.h>
+typedef pthread_mutex_t FUMutex;
+#define fu_mutex_init(m) (pthread_mutex_init((m), NULL))
+#define fu_mutex_lock(m) pthread_mutex_lock((m))
+#define fu_mutex_unlock(m) pthread_mutex_unlock((m))
+#define fu_mutex_destroy(m) pthread_mutex_destroy((m))
 #endif
 
 typedef struct _FUAsyncResult FUAsyncResult;
 typedef void (*FUAsyncReadyCallback)(FUObject* obj, FUAsyncResult* res, void* usd);
-
-typedef struct _FUMutex {
-    HANDLE handle;
-} FUMutex;
 
 FU_DECLARE_TYPE(FUThread, fu_thread)
 #define FU_TYPE_THREAD (fu_thread_get_type())
@@ -30,13 +42,7 @@ FU_DECLARE_TYPE(FUTask, fu_task_pool)
 typedef char* (*FUTaskFunc)(FUTask* task, void* usd, void* res);
 //
 // mutex
-#define fu_mutex_init(m)                              \
-    do {                                              \
-        (m)->handle = CreateMutex(NULL, FALSE, NULL); \
-    } while (0)
-#define fu_mutex_lock(m) WaitForSingleObject((m)->handle, INFINITE)
-#define fu_mutex_unlock(m) ReleaseMutex((m)->handle)
-#define fu_mutex_destroy(m) CloseHandle((m)->handle)
+
 //
 // thread
 bool fu_thread_new_run(FUThreadPool* pool, FUThreadFunc fn, void* usd);

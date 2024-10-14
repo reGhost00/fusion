@@ -8,12 +8,12 @@
  * @copyright Copyright (c) 2024
  *
  */
-#include "../core/types.h"
+// #include "../core/types.h"
 #ifdef FU_OS_WINDOW
 #ifndef _TVFS_WINDOW_H_
 #define _TVFS_WINDOW_H_
 #include <windows.h>
-
+// custom
 #include "../core/file.h"
 #include "../core/utils.h"
 
@@ -43,6 +43,7 @@ struct _TVFSArgs {
 
     /** (读写)文件大小 */
     size_t size;
+    size_t offset;
     /** 读缓冲区 */
     void* buffRead;
     /** 写缓冲区 */

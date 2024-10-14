@@ -12,6 +12,7 @@
 #include "file.h"
 #include "main.h"
 //
+#include "../platform/vfs.linux.h"
 #include "../platform/vfs.window.h"
 #define DEF_READ_BLOCK_LEN 999000
 /**
@@ -157,7 +158,7 @@ static inline void fu_file_check_if_open(FUFile* file)
 FUFile* fu_file_new_for_path(const char* path)
 {
     FUFile* file = fu_file_new(path);
-    file->args->flags = CREATE_ALWAYS;
+    file->args->flags = E_VFS_FLAGS_CREATE_ALWAYS;
     return file;
 }
 /**
@@ -169,7 +170,7 @@ FUFile* fu_file_new_for_path(const char* path)
 FUFile* fu_file_open_for_path(const char* path)
 {
     FUFile* file = fu_file_new(path);
-    file->args->flags = OPEN_ALWAYS;
+    file->args->flags = E_VFS_FLAGS_OPEN_ALWAYS;
     return file;
 }
 
@@ -270,7 +271,7 @@ FUFileStream* fu_file_stream_new_from_file(FUFile* file)
     fu_return_val_if_fail_with_message(EFU_FILE_TYPE_REGULAR == file->type, "File is not regular\n", NULL);
     fu_return_val_if_fail_with_message(!file->state, "File has been opened\n", NULL);
 
-    file->args->mode |= FILE_FLAG_OVERLAPPED;
+    file->args->mode |= E_VFS_FLAGS_ASYNC; // FILE_FLAG_OVERLAPPED;
     fu_file_check_if_open(file);
 
     FUFileStream* stream = (FUFileStream*)fu_object_new(FU_TYPE_FILE_STREAM);

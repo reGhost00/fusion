@@ -1418,7 +1418,7 @@ bool fu_array_binary_search(FUArray* array, const void* target, FUCompareFunc co
 
             val = compareFunc(arr->data + (arr->elSize * middle), target);
             if (val == 0) {
-                result = TRUE;
+                result = true;
                 break;
             } else if (val < 0)
                 left = middle + 1;
@@ -2367,7 +2367,7 @@ void fu_ptr_array_foreach(FUPtrArray* array, FUFunc func, void* usd)
  */
 bool fu_ptr_array_find_with_equal_func(FUPtrArray* haystack, const void* needle, FUEqualFunc equalFunc, uint32_t* idx)
 {
-    fu_return_val_if_fail(haystack != NULL, FALSE);
+    fu_return_val_if_fail(haystack != NULL, false);
 
     if (equalFunc == NULL)
         equalFunc = fu_direct_equal;

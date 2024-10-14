@@ -1,3 +1,5 @@
+#include <string.h>
+// custom
 #include "../core/utils.h"
 #include "types.h"
 

@@ -180,6 +180,32 @@ out:
     }
     return NULL;
 }
+#else
+#include <sys/random.h>
+static uint64_t* fu_rand_new_seed()
+{
+    uint64_t* seed = fu_malloc(DEF_RAND_SEED_SIZE * sizeof(uint64_t));
+    getrandom(seed, DEF_RAND_SEED_SIZE * sizeof(uint64_t), 0);
+    return seed;
+}
+
+/** https://github.com/imneme/pcg-c-basic/tree/master */
+static uint64_t* fu_rand_buff_new_os()
+{
+    uint64_t* buff = fu_malloc(DEF_RAND_BUFF_SIZE * sizeof(uint64_t));
+    uint64_t* seed = fu_rand_new_seed();
+    uint64_t x, r, ps = rand() % 0xff;
+    for (int i = 0; i < DEF_RAND_BUFF_SIZE; i++) {
+        ps = ps * 6364136223846793005ULL + seed[i % DEF_RAND_SEED_SIZE];
+        x = ((ps >> 18u) ^ ps) >> 27u;
+        r = ps >> 59u;
+        buff[i] = x >> r | x << (-r & 31);
+    }
+
+    fu_free(seed);
+    return buff;
+}
+#endif
 
 static uint64_t* fu_rand_buff_new_lcg()
 {
@@ -263,5 +289,3 @@ int fu_rand_int_range(FURand* self, int min, int max)
     }
     return self->buff[self->idx++] % (max - min) + min;
 }
-
-#endif

@@ -1,7 +1,6 @@
 #ifndef _FU_UTILS_H_
 #define _FU_UTILS_H_
 // #define FU_NO_TRACK_MEMORY
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -57,6 +56,15 @@ void fu_error_free(FUError* err);
             return val;                                    \
         }                                                  \
     } while (0)
+
+#define fu_goto_if_fail(expr, tar)                               \
+    do {                                                         \
+        if (FU_UNLIKELY(!(expr))) {                              \
+            fprintf(stderr, "%s Failed: %s\n", __func__, #expr); \
+            goto tar;                                            \
+        }                                                        \
+    } while (0)
+
 #else
 #define fu_return_if_fail(expr) ((void)(expr))
 
@@ -73,6 +81,8 @@ void fu_error_free(FUError* err);
         if (FU_UNLIKELY(!(expr)))                          \
             return val;                                    \
     } while (0)
+
+#define fu_goto_if_fail(expr, tar) ((void)(expr))
 #endif
 /**
  * fu_steal_pointer:
@@ -169,6 +179,16 @@ wchar_t* fu_utf8_to_wchar(const char* str, size_t* len);
             goto tar;                        \
         }                                    \
     } while (0)
+
+#else
+
+#define fu_wchar_to_utf8(wstr, len) (wstr)
+#define fu_utf8_to_wchar(str, len) (str)
+
+#define fu_winapi_return_if_fail(expr) fu_return_if_fail(expr)
+#define fu_winapi_return_val_if_fail(expr, val) fu_return_val_if_fail(expr, val)
+#define fu_winapi_goto_if_fail(expr, tar) fu_goto_if_fail(expr, tar)
+#define fu_winapi_print_error(prefix) ((void)0)
 
 #endif
 

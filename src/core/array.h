@@ -27,6 +27,7 @@
 #define __G_ARRAY_H__
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include "types.h"
 
