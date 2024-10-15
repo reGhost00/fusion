@@ -107,8 +107,8 @@ static inline void* fu_steal_pointer(void* pp)
 }
 #define fu_steal_pointer(pp) ((typeof(*pp))(fu_steal_pointer)(pp))
 
-#define fu_max(a, b) ((a) ^ ((a) ^ (b)) & -(a < b))
-#define fu_min(a, b) ((b) ^ ((b) ^ (a)) & -(b < a))
+#define fu_max(a, b) (((a) ^ ((a) ^ (b))) & -(a < b))
+#define fu_min(a, b) (((b) ^ ((b) ^ (a))) & -(b < a))
 
 // #define FU_NO_TRACK_MEMORY
 #ifdef FU_NO_TRACK_MEMORY
@@ -127,6 +127,7 @@ void* fu_malloc0_n(size_t count, size_t size);
 void* fu_realloc(void* p, size_t size);
 void fu_free(void* p);
 #endif
+
 void fu_clear_pointer(void** pp, FUNotify destroy);
 void* fu_memdup(const void* p, size_t size);
 char* fu_strdup(const char* src);

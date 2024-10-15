@@ -43,4 +43,7 @@ FUBytes* fu_file_read_all(FUFile* file);
 FUFileStream* fu_file_stream_new_from_file(FUFile* file);
 bool fu_file_stream_read_async(FUFileStream* fileStream, size_t size, FUAsyncReadyCallback cb, void* usd);
 void* fu_file_stream_read_finish(FUFileStream* fileStream, FUAsyncResult* res, FUError** error);
+
+bool fu_file_stream_read_all_async(FUFileStream* fileStream, FUAsyncReadyCallback cb, void* usd);
+FUBytes* fu_file_stream_read_all_finish(FUFileStream* fileStream, FUAsyncResult* res, FUError** error);
 #endif // _FU_FILE_H_

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.30.0)
+cmake_minimum_required(VERSION 3.28.0)
 project(fusion VERSION 0.0.1)
 
 # find_package(OpenGL REQUIRED)

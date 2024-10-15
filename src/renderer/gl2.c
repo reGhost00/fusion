@@ -134,7 +134,7 @@ typedef enum _EDefShader {
     E_DEF_SHADER_NORMAL,
     E_DEF_SHADER_CNT
 } EDefShader;
-
+/**
 static void fu_print_vertices(TVertex* buff, uint32_t col, uint32_t len)
 {
     char str[len * 33];
@@ -173,7 +173,7 @@ static void fu_print_buff_uint(uint32_t* buff, uint32_t col, uint32_t len)
     printf("%s\n", str);
     fflush(stdout);
 }
-
+*/
 /**
  * @brief 创建并编译着色器
  *

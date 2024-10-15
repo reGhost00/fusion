@@ -14,7 +14,7 @@
 //
 #include "../platform/vfs.linux.h"
 #include "../platform/vfs.window.h"
-#define DEF_READ_BLOCK_LEN 999000
+#define DEF_READ_BLOCK_LEN 2'000'000
 /**
 struct _FUStream {
     FUObject parent;
@@ -90,7 +90,7 @@ struct _FUFile {
     EFileState state;
     EFUFileType type;
     // EFileOpenMode mode;
-    char* path;
+    // char* path;
 };
 FU_DEFINE_TYPE(FUFile, fu_file, FU_TYPE_OBJECT)
 
@@ -108,11 +108,11 @@ struct _FUFileStream {
     FUFile* file;
     // TOverlapped* overlapped;
     /** 已读取数据 */
-    FUByteArray* readed;
+    FUByteArray* asyncReaded;
     /** 当前读取位置 */
-    size_t offset;
+    // size_t offset;
     EFileStreamState state;
-    TVFSErrorCode lastError;
+    // TVFSErrorCode lastError;
     FUAsyncReadyCallback callback;
     void* usd;
 };
@@ -122,7 +122,7 @@ static void fu_file_finalize(FUObject* obj)
 {
     FUFile* file = (FUFile*)obj;
     t_vfs_args_free(file->args);
-    fu_free(file->path);
+    // fu_free(file->path);
 }
 
 static void fu_file_class_init(FUObjectClass* oc)
@@ -134,7 +134,7 @@ static inline FUFile* fu_file_new(const char* path)
 {
     FUFile* file = (FUFile*)fu_object_new(FU_TYPE_FILE);
     file->args = t_vfs_args_new(path);
-    file->path = fu_strdup(path);
+    // file->path = fu_strdup(path);
 
     t_vfs_query_type(file->args);
     file->type = file->args->type;
@@ -196,23 +196,23 @@ FUBytes* fu_file_read_all(FUFile* file)
     fu_return_val_if_fail(file, NULL);
     fu_return_val_if_fail_with_message(EFU_FILE_TYPE_REGULAR == file->type, "File is not regular\n", NULL);
     fu_return_val_if_fail_with_message(E_FILE_STATE_OPENED >= file->state, "File has been open by ASYNC mode\n", NULL);
-    FUByteArray* rev = fu_byte_array_new();
+    FUByteArray* arr = fu_byte_array_new();
     size_t size = DEF_READ_BLOCK_LEN;
     void* dt;
     fu_file_check_if_open(file);
     while ((dt = fu_file_read(file, &size))) {
-        fu_byte_array_append(rev, dt, size);
+        fu_byte_array_append(arr, dt, size);
         fu_free(dt);
         if (DEF_READ_BLOCK_LEN > size)
             break;
     }
-    return fu_byte_array_free_to_bytes(rev);
+    return fu_byte_array_free_to_bytes(arr);
 }
 
 bool fu_file_write(FUFile* file, const void* data, size_t size)
 {
     fu_return_val_if_fail(file && data && size, false);
-    fu_return_val_if_fail_with_message(EFU_FILE_TYPE_REGULAR == file->type, "File is not regular\n", NULL);
+    fu_return_val_if_fail_with_message(EFU_FILE_TYPE_DIRECTORY != file->type, "File is not regular\n", NULL);
     fu_return_val_if_fail_with_message(E_FILE_STATE_OPENED >= file->state, "File has been open by ASYNC mode\n", NULL);
     fu_file_check_if_open(file);
 
@@ -224,7 +224,6 @@ bool fu_file_write(FUFile* file, const void* data, size_t size)
 }
 
 /**
- * @brief
  * Glib设计异步操作回调和_finish函数获取结果的原因:
  * 1 异步安全性。如果直接将结果作为参数传给回调,会暴露内部状态,可能存在线程安全问题。
  * 2 统一接口。通过_finish函数获取结果,提供了一致的使用模式。而不用考虑各个API的回调参数不同。
@@ -235,13 +234,17 @@ bool fu_file_write(FUFile* file, const void* data, size_t size)
  * 7 可选支持。_finish可以放在不同线程中调用,支持错误通知机制。
  * 所以这种设计可以提高安全性和一致性,同时也带来了灵活性,是Glib规范化异步操作的一种比较好的模式。
  *
- * @param obj
  */
+/**
+ * 异步操作的执行顺序
+ * 异步读指定大小：
+ */
+
 
 static void fu_file_stream_finalize(FUObject* obj)
 {
     FUFileStream* stream = (FUFileStream*)obj;
-    fu_byte_array_free(stream->readed, true);
+    fu_byte_array_free(stream->asyncReaded, true);
     fu_object_unref(stream->file);
     // FUStreamNode* node = stream->head;
     // while (node) {
@@ -276,24 +279,24 @@ FUFileStream* fu_file_stream_new_from_file(FUFile* file)
 
     FUFileStream* stream = (FUFileStream*)fu_object_new(FU_TYPE_FILE_STREAM);
     stream->file = fu_object_ref(file);
-    stream->readed = fu_byte_array_new();
+    stream->asyncReaded = fu_byte_array_new();
     return stream;
 }
 
-static void fu_file_stream_read_callback(TVFSArgs* args, TVFSErrorCode error, void* usd)
+static bool fu_file_stream_read_callback(TVFSArgs* args, TVFSErrorCode error, void* usd)
 {
     // printf("%s\n", __func__);
     FUFileStream* stream = (FUFileStream*)usd;
-    stream->lastError = error;
+    args->lastError = error;
     stream->state = !error ? E_FILE_STREAM_STATE_SUCCESS : E_FILE_STREAM_STATE_FAILED;
 
     t_vfs_async_finish(args);
+    return true;
 }
 
 static bool fu_file_stream_source_check(FUSource* src, void* usd)
 {
     FUFileStream* stream = (FUFileStream*)usd;
-    // printf("%s\n", __func__);
     return t_vfs_async_check((TVFSArgs*)stream->file->args);
 }
 
@@ -302,7 +305,6 @@ static bool fu_file_stream_source_dispatch(void* usd)
     FUFileStream* stream = (FUFileStream*)usd;
     stream->callback((FUObject*)stream, (FUAsyncResult*)stream->file->args, stream->usd);
     stream->state = E_FILE_STREAM_STATE_DONE;
-    // printf("%s\n%s\n", __func__, (char*)stream->file->args->buffRead);
     return false;
 }
 
@@ -349,20 +351,81 @@ void* fu_file_stream_read_finish(FUFileStream* fileStream, FUAsyncResult* res, F
     TVFSArgs* args = (TVFSArgs*)res;
     if (E_FILE_STREAM_STATE_SUCCESS != fileStream->state) {
         if (error)
-            *error = fu_error_new_from_code(fileStream->lastError);
+            *error = fu_error_new_from_code(args->lastError);
         return NULL;
     }
     return fu_memdup(args->buffRead, args->size);
 }
 
-// void* fu_file_read(FUFile* file, size_t* size)
-// {
-//     fu_return_val_if_fail(file && size && *size, NULL);
-//     char* rev = fu_malloc0(*size);
-//     if (!(*size = file->vfs->read(file->fd, *size, (void**)&rev))) {
-//         *size = 0;
-//         fu_free(rev);
-//         return NULL;
-//     }
-//     return rev;
-// }
+static bool fu_file_stream_read_all_callback(TVFSArgs* args, TVFSErrorCode error, void* usd)
+{
+    printf("%s\n", __func__);
+    FUFileStream* stream = (FUFileStream*)usd;
+    if (error) {
+        args->lastError = error;
+        stream->state = E_FILE_STREAM_STATE_FAILED;
+        t_vfs_async_finish(args);
+        return false;
+    }
+
+    fu_byte_array_append(stream->asyncReaded, args->buffRead, args->size);
+
+    // read finish
+    if (DEF_READ_BLOCK_LEN > args->size) {
+        stream->state = E_FILE_STREAM_STATE_SUCCESS;
+        t_vfs_async_finish(args);
+        return true;
+    }
+
+    return !t_vfs_read_async_continue(args);
+}
+
+static bool fu_file_stream_source_check_all(FUSource* src, void* usd)
+{
+    FUFileStream* stream = (FUFileStream*)usd;
+    return t_vfs_async_check((TVFSArgs*)stream->file->args);
+}
+
+static bool fu_file_stream_source_dispatch_all(void* usd)
+{
+    FUFileStream* stream = (FUFileStream*)usd;
+    stream->callback((FUObject*)stream, (FUAsyncResult*)stream->file->args, stream->usd);
+    stream->state = E_FILE_STREAM_STATE_DONE;
+    return false;
+}
+
+bool fu_file_stream_read_all_async(FUFileStream* fileStream, FUAsyncReadyCallback callback, void* usd)
+{
+    static const FUSourceFuncs defAsyncSourceFuncs = {
+        .check = fu_file_stream_source_check_all,
+        .cleanup = fu_file_stream_source_cleanup
+    };
+    fu_return_val_if_fail(fileStream, false);
+    TVFSArgs* args = fileStream->file->args;
+    args->buffRead = fu_malloc0(DEF_READ_BLOCK_LEN);
+    args->size = DEF_READ_BLOCK_LEN;
+
+    fileStream->callback = callback;
+    fileStream->usd = usd;
+    fu_winapi_return_val_if_fail(t_vfs_read_async(args, fu_file_stream_read_all_callback, fileStream), false);
+
+    // 自动清理
+    FUSource* src = fu_source_new(&defAsyncSourceFuncs, fileStream);
+    fu_source_set_callback(src, fu_file_stream_source_dispatch_all, fu_object_ref(fileStream));
+    fu_source_attach(src, NULL);
+    fileStream->state = E_FILE_STREAM_STATE_PENDING;
+    return true;
+}
+
+FUBytes* fu_file_stream_read_all_finish(FUFileStream* fileStream, FUAsyncResult* res, FUError** error)
+{
+    TVFSArgs* args = (TVFSArgs*)res;
+    if (E_FILE_STREAM_STATE_SUCCESS != fileStream->state) {
+        if (error)
+            *error = fu_error_new_from_code(args->lastError);
+        return NULL;
+    }
+    
+    return fu_byte_array_to_bytes(fileStream->asyncReaded);
+    // return fu_by(args->buffRead, args->size);
+}

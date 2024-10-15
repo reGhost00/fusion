@@ -196,7 +196,7 @@ FUMainLoop* fu_main_loop_new(void)
 {
     FUMainLoop* loop = (FUMainLoop*)fu_object_new(FU_TYPE_MAIN_LOOP);
     atomic_init(&loop->cnt, 0);
-    return loop;
+    return defMainLoop = loop;
 }
 
 void fu_main_loop_quit(FUMainLoop* loop)

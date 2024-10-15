@@ -165,7 +165,7 @@ static void app_active_callback(FUObject* obj, void* usd)
     FUWindowConfig* cfg = fu_window_config_new(NULL, 640, 320);
     app->window = fu_window_new((FUApp*)app, cfg);
 
-    size_t len = 1600;
+    // size_t len = 1600;
     FUFile* file = fu_file_open_for_path("/home/warmsnow/下载/OmegaOptions.bak");
     // FUArray* arr = fu_array_new(sizeof(char));
     // FUTimer* timer = fu_timer_new();

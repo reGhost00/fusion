@@ -106,6 +106,7 @@ FUByteArray* fu_byte_array_new_take(uint8_t** data, uint32_t len);
 uint8_t* fu_byte_array_steal(FUByteArray* array, uint32_t* len);
 uint8_t* fu_byte_array_free(FUByteArray* array, bool freeSegment);
 FUBytes* fu_byte_array_free_to_bytes(FUByteArray* array);
+FUBytes* fu_byte_array_to_bytes(FUByteArray* array);
 
 FUByteArray* fu_byte_array_ref(FUByteArray* array);
 void fu_byte_array_unref(FUByteArray* array);

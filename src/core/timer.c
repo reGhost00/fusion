@@ -150,6 +150,7 @@ out:
 }
 
 #else
+#include <time.h>
 
 typedef struct _FUTimeoutSource {
     FUSource parent;
@@ -178,8 +179,8 @@ FUTimer* fu_timer_new()
 void fu_timer_start(FUTimer* obj)
 {
     struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
-    obj->prev = ts.tv_sec * 100'0ULL + ts.tv_nsec / 1'000'000ULL;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    obj->prev = ts.tv_sec * 1'000'000UL + ts.tv_nsec / 1'000UL;
     obj->active = true;
 }
 
@@ -187,18 +188,24 @@ uint64_t fu_timer_stop(FUTimer* obj)
 {
     fu_return_val_if_fail_with_message(obj->active, "Timer not started", 0);
     struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
-    uint64_t curr = ts.tv_sec * 100'0ULL + ts.tv_nsec / 1'000'000ULL;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    uint64_t curr = ts.tv_sec * 1'000'000UL + ts.tv_nsec / 1'000UL;
     obj->active = false;
     return curr - obj->prev;
 }
 
+/**
+ * @brief 计算两个时间差
+ * 精度: 微秒
+ * @param obj 
+ * @return uint64_t 
+ */
 uint64_t fu_timer_measure(FUTimer* obj)
 {
     fu_return_val_if_fail_with_message(obj->active, "Timer not active", 0);
     struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
-    uint64_t curr = ts.tv_sec * 100'0ULL + ts.tv_nsec / 1'000'000ULL;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    uint64_t curr = ts.tv_sec * 1'000'000ULL + ts.tv_nsec / 1'000UL;
     uint64_t diff = curr - obj->prev;
     obj->prev = curr;
     return diff;
@@ -210,12 +217,19 @@ static void fu_timeout_source_class_init(FUObjectClass* oc)
 {
 }
 
+/**
+ * @brief check if the timeout source should be triggered
+ * precision: 1ms
+ * @param src 
+ * @param usd 
+ * @return Check 
+ */
 static bool fu_timeout_source_check(FUSource* src, void* usd)
 {
     struct timespec ts;
     FUTimeoutSource* timeoutSrc = (FUTimeoutSource*)src;
     timespec_get(&ts, TIME_UTC);
-    uint64_t curr = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
+    uint64_t curr = ts.tv_sec * 1'000 + ts.tv_nsec / 1'000'000; // ms
     if (curr - timeoutSrc->prev < timeoutSrc->ms)
         return false;
     timeoutSrc->prev = curr;
@@ -234,6 +248,7 @@ FUSource* fu_timeout_source_new(unsigned ms)
     return (FUSource*)src;
 }
 #endif
+
 char* fu_get_current_time_UTC()
 {
     struct timespec ts;

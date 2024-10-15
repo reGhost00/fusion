@@ -1553,14 +1553,22 @@ uint8_t* fu_byte_array_free(FUByteArray* array, bool freeSegment)
  */
 FUBytes* fu_byte_array_free_to_bytes(FUByteArray* array)
 {
-    size_t length;
-
     fu_return_val_if_fail(array, NULL);
 
-    length = array->len;
+    size_t length = array->len;
     void* data = fu_byte_array_free(array, false);
     return fu_bytes_new_take(&data, length);
 }
+
+FUBytes* fu_byte_array_to_bytes(FUByteArray* array)
+{
+    fu_return_val_if_fail(array, NULL);
+    if (FU_UNLIKELY(!array->len)) return NULL;
+    TArray* arr = (TArray*)array;
+    void* dt = fu_memdup(arr->data, arr->len);
+    return fu_bytes_new_take(&dt, arr->len);
+}
+
 
 /**
  * fu_byte_array_ref:

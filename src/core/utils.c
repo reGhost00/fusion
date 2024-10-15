@@ -16,8 +16,12 @@
 static struct sc_map_64 defMemoryTable;
 static atomic_uint defMemoryTableCount = 0;
 static bool ifMemoryTableInit = false;
-static FUMutex defMemoryTableMutex = {};
+#ifdef FU_OS_WINDOW
 
+#else
+static pthread_mutex_t defMemoryTableMutex = PTHREAD_MUTEX_INITIALIZER;
+static bool isMutexInit = false;
+#endif
 static void fu_check_memory_leak()
 {
     const uint32_t leakCnt = atomic_load_explicit(&defMemoryTableCount, memory_order_relaxed);
@@ -38,8 +42,10 @@ static void fu_check_memory_leak()
 
 static void* fu_track_memory(void* p, size_t size)
 {
-    // if (FU_UNLIKELY(!defMemoryTableMutex))
-    //     fu_mutex_init(&defMemoryTableMutex);
+    #ifdef FU_OS_WINDOW
+    if (FU_UNLIKELY(!defMemoryTableMutex))
+        fu_mutex_init(&defMemoryTableMutex);
+    #endif
     fu_mutex_lock(&defMemoryTableMutex);
     if (!atomic_fetch_add_explicit(&defMemoryTableCount, 1, memory_order_relaxed) && !ifMemoryTableInit) {
         sc_map_init_64(&defMemoryTable, 0, 0);
@@ -75,8 +81,17 @@ void* fu_realloc(void* p, size_t size)
 {
     if (FU_UNLIKELY(!p))
         return fu_malloc(size);
+#ifdef FU_OS_LINUX
+    if (FU_UNLIKELY(!isMutexInit)) {
+        isMutexInit = true;
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&defMemoryTableMutex, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+#endif
     fu_mutex_lock(&defMemoryTableMutex);
-    // defMemoryTableCount -= 1;
     atomic_fetch_sub_explicit(&defMemoryTableCount, 1, memory_order_relaxed);
     sc_map_del_64(&defMemoryTable, (uintptr_t)p);
     void* rev = fu_track_memory(mi_realloc(p, size), size);

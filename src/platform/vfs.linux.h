@@ -22,13 +22,14 @@ typedef enum _EVFSFlags {
 } EVFSFlags;
 
 typedef struct _TVFSArgs TVFSArgs;
-typedef void (*TVFSAsyncCallback)(TVFSArgs* args, TVFSErrorCode error, void* usd);
+typedef bool (*TVFSAsyncCallback)(TVFSArgs* args, TVFSErrorCode error, void* usd);
 
 typedef struct _TOverlapped {
     struct io_uring ring;
     struct io_uring_sqe* sqe;
     struct io_uring_cqe* cqe;
     TVFSArgs* args;
+    // FUByteArray* buffRead;
     TVFSAsyncCallback cb;
     int cqeCnt;
     void* usd;
@@ -45,8 +46,10 @@ struct _TVFSArgs {
     /** file type */
     EFUFileType type;
 
+    int lastError;
+
     size_t size;
-    ssize_t offset;
+    size_t offset;
     void* buffRead;
     const void* buffWrite;
 
@@ -57,7 +60,6 @@ static TVFSArgs* t_vfs_args_new(const char* path)
 {
     TVFSArgs* args = fu_malloc0(sizeof(TVFSArgs));
     args->path = fu_strdup(path);
-    args->offset = -1;
     return args;
 }
 
@@ -67,20 +69,21 @@ static void t_vfs_args_free(TVFSArgs* args)
     fu_free(args);
 }
 
-static bool t_vfs_query_type(TVFSArgs* args)
+static void t_vfs_query_type(TVFSArgs* args)
 {
     struct stat st;
     if (stat(args->path, &st)) {
-        perror("stat");
-        return false;
+        // perror("stat");
+        args->type = EFU_FILE_TYPE_NOT_EXIST;
+        return;
     }
+
     if (S_ISREG(st.st_mode))
         args->type = EFU_FILE_TYPE_REGULAR;
     else if (S_ISDIR(st.st_mode))
         args->type = EFU_FILE_TYPE_DIRECTORY;
     else
-        args->type = EFU_FILE_TYPE_NOT_EXIST;
-    return true;
+        args->type = EFU_FILE_TYPE_OTHER;
 }
 
 static bool t_vfs_open(TVFSArgs* args)
@@ -121,8 +124,8 @@ static bool t_vfs_async_check(TVFSArgs* args)
     } else if (!args->ovd->cqeCnt)
         args->size = args->ovd->cqe->res;
     if (!args->ovd->cqeCnt) {
-        args->ovd->cb(args, err, args->ovd->usd);
-        return true;
+        io_uring_cqe_seen(&args->ovd->ring, args->ovd->cqe);
+        return args->ovd->cb(args, err, args->ovd->usd);
     }
     return false; //! args->ovd->cqeCnt;
 }
@@ -131,15 +134,19 @@ static bool t_vfs_async_check(TVFSArgs* args)
 static void t_vfs_async_cleanup(TVFSArgs* args)
 {
     io_uring_queue_exit(&args->ovd->ring);
-    fu_free(args->ovd);
+    // fu_byte_array_free(args->ovd->buffRead, true);
+    // fu_free(args->ovd);
+    fu_clear_pointer((void**)&args->ovd, fu_free);
 }
 
 static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
 {
     args->ovd = fu_malloc0(sizeof(TOverlapped));
+    // args->ovd->buffRead = fu_byte_array_new();
     args->ovd->args = args;
     args->ovd->cb = cb;
     args->ovd->usd = usd;
+
     if (0 > io_uring_queue_init(DEF_QUEUE_DEPTH, &args->ovd->ring, 0)) {
         perror("io_uring_queue_init");
         fu_free(args->ovd);
@@ -155,6 +162,20 @@ static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
 
     io_uring_prep_read(args->ovd->sqe, args->hwnd, args->buffRead, args->size, args->offset);
     io_uring_sqe_set_data(args->ovd->sqe, args->ovd);
+    if (0 > io_uring_submit(&args->ovd->ring)) {
+        perror("io_uring_submit");
+        io_uring_queue_exit(&args->ovd->ring);
+        fu_free(args->ovd);
+        return false;
+    }
+    return true;
+}
+
+static bool t_vfs_read_async_continue(TVFSArgs* args)
+{
+    args->offset += args->size;
+    args->ovd->sqe = io_uring_get_sqe(&args->ovd->ring);
+    io_uring_prep_read(args->ovd->sqe, args->hwnd, args->buffRead, args->size, args->offset);
     if (0 > io_uring_submit(&args->ovd->ring)) {
         perror("io_uring_submit");
         io_uring_queue_exit(&args->ovd->ring);
