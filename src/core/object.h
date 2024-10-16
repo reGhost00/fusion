@@ -93,4 +93,8 @@ void fu_object_unref(FUObject* obj);
 
 void fu_object_set_user_data(FUObject* obj, const char* key, void* data, FUNotify notify);
 void* fu_object_get_user_data(FUObject* obj, const char* key);
+
+#define fu_object_set_user_data(obj, key, data, notify) fu_object_set_user_data((FUObject*)obj, key, data, notify)
+#define fu_object_get_user_data(obj, key) fu_object_get_user_data((FUObject*)obj, key)
+
 #endif /* _FU_OBJECT_H_ */

@@ -8,10 +8,9 @@
  * @copyright Copyright (c) 2024
  *
  */
-// #include "../core/types.h"
+#pragma once
+
 #ifdef FU_OS_WINDOW
-#ifndef _TVFS_WINDOW_H_
-#define _TVFS_WINDOW_H_
 #include <windows.h>
 // custom
 #include "../core/file.h"
@@ -19,8 +18,14 @@
 
 typedef HANDLE TVFSHwnd;
 typedef DWORD TVFSErrorCode;
+typedef enum _EVFSFlags {
+    E_VFS_FLAGS_OPEN_ALWAYS = 0x001,
+    E_VFS_FLAGS_CREATE_ALWAYS = 0x010,
+    E_VFS_FLAGS_ASYNC = 0x100
+} EVFSFlags;
+
 typedef struct _TVFSArgs TVFSArgs;
-typedef void (*TVFSAsyncCallback)(TVFSArgs* args, TVFSErrorCode error, void* usd);
+typedef bool (*TVFSAsyncCallback)(TVFSArgs* args, TVFSErrorCode error, void* usd);
 typedef struct _TOverlapped {
     OVERLAPPED overlapped;
     TVFSArgs* args;
@@ -30,17 +35,16 @@ typedef struct _TOverlapped {
 
 struct _TVFSArgs {
     /** (打开)对存在或不存在的文件或设备执行的操作 */
-    DWORD flags;
-    /** (打开)文件或设备属性和标志 */
-    DWORD mode;
+    EVFSFlags flags;
     /** (打开)文件或设备 */
     wchar_t* path;
     /** 文件句柄 */
-    TVFSHwnd hwnd;
+    HANDLE hwnd;
 
     /** (查询)文件类型 */
     EFUFileType type;
 
+    DWORD lastError;
     /** (读写)文件大小 */
     size_t size;
     size_t offset;
@@ -50,58 +54,55 @@ struct _TVFSArgs {
     const void* buffWrite;
 
     // 异步相关参数
-    // TVFSAsyncCallback callback;
     TOverlapped* ovd;
-    // void* usd;
-    // TOverlapped* asd;
 };
-
-// typedef bool (*TVFSFunc)(TVFSArgs* args);
-// typedef struct _TVFS {
-//     TVFSFunc query_type;
-//     TVFSFunc open;
-//     TVFSFunc read;
-//     TVFSFunc read_async;
-//     TVFSFunc write;
-// } TVFS;
 
 static TVFSArgs* t_vfs_args_new(const char* path)
 {
     size_t len;
     TVFSArgs* args = fu_malloc0(sizeof(TVFSArgs));
     args->path = fu_utf8_to_wchar(path, &len);
-    args->mode = FILE_ATTRIBUTE_NORMAL;
     return args;
 }
 
 static void t_vfs_args_free(TVFSArgs* args)
 {
+    if (args->hwnd)
+        CloseHandle(args->hwnd);
     fu_free(args->path);
     fu_free(args);
 }
 
-static bool t_vfs_query_type(TVFSArgs* args)
+static void t_vfs_query_type(TVFSArgs* args)
 {
     DWORD attr = GetFileAttributesW(args->path);
     if (INVALID_FILE_ATTRIBUTES != attr) {
-        if (FILE_ATTRIBUTE_DIRECTORY == attr)
-            args->type = EFU_FILE_TYPE_DIRECTORY;
-        // else if (FILE_ATTRIBUTE_NORMAL != attr)
-        //     args->type = EFU_FILE_TYPE_OTHER;
-        else
+        if (FILE_ATTRIBUTE_DIRECTORY != attr)
             args->type = EFU_FILE_TYPE_REGULAR;
-    }
-    return true;
+        else
+            args->type = EFU_FILE_TYPE_DIRECTORY;
+    } else
+        args->type = EFU_FILE_TYPE_NOT_EXIST;
+    return;
 }
 
 static bool t_vfs_open(TVFSArgs* args)
 {
-    bool rev = 0 < (args->hwnd = CreateFileW(args->path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, args->flags, args->mode, NULL));
-    if (!rev) {
-        fu_winapi_print_error(__func__);
-    }
-
-    return rev;
+    DWORD flags;
+    DWORD mode = FILE_ATTRIBUTE_NORMAL;
+    if (E_VFS_FLAGS_OPEN_ALWAYS & args->flags)
+        flags = OPEN_ALWAYS;
+    else if (E_VFS_FLAGS_CREATE_ALWAYS & args->flags)
+        flags = CREATE_ALWAYS;
+    else
+        flags = OPEN_EXISTING;
+    if (E_VFS_FLAGS_ASYNC & args->flags)
+        mode |= FILE_FLAG_OVERLAPPED;
+    if (INVALID_HANDLE_VALUE != (args->hwnd = CreateFileW(args->path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, flags, mode, NULL)))
+        return true;
+    args->lastError = GetLastError();
+    fu_winapi_print_error_from_code(__func__, args->lastError);
+    return false;
 }
 
 static void t_vfs_close(TVFSArgs* args)
@@ -117,6 +118,15 @@ static bool t_vfs_read(TVFSArgs* args)
     args->size = bytesRead;
     return bytesRead;
 }
+
+static bool t_vfs_write(TVFSArgs* args)
+{
+    DWORD bytesWritten = 0;
+    fu_winapi_return_val_if_fail(WriteFile(args->hwnd, args->buffWrite, args->size, &bytesWritten, NULL), false);
+    args->size = bytesWritten;
+    return bytesWritten;
+}
+
 /**
  * @brief 在 window 下异步读取文件
  * 启动异步操作的线程需要调用 t_vfs_async_check 进入可报警等待状态
@@ -127,30 +137,30 @@ static bool t_vfs_read(TVFSArgs* args)
  * @return true
  * @return false
  */
+//
+// 异步操作
+// 异步读取指定大小的数据
+// 1 调用 CreateFileW 打开文件，参数 flags 包含 FILE_FLAG_OVERLAPPED
+//     t_vfs_open(E_VFS_FLAGS_ASYNC)
+//
+// 2 创建事件对象并保存在 OVERLAPPED.hEvent 中用于等待异步操作完成，调用 ReadFileEx 开始异步读取
+//      t_vfs_read_async(args, cb, usd)
+//          args->buffRead: 读取缓冲区
+//          args->size: 读取大小（缓冲区大小）
+//          args->offset: 读取偏移（可选）
+//          cb: 当读取成功且线程在可报警状态时调用此函数 （调用 t_vfs_async_check）
+//          usd: 用户数据
+// 3 用户调用 WaitForSingleObjectEx 使线程进入可报警状态，如何此时读取完成，系统会调用 OVERLAPPED 中的回调函数
+//      t_vfs_async_check
+// 4 OVERLAPPED 中的回调函数在其它线程中执行。可以调用 SetEvent 通知启动的线程异步读取操作完成
 
-static void t_vfs_read_finish(DWORD error, DWORD bytes, LPOVERLAPPED overlapped)
-{
-    TOverlapped* ovd = (TOverlapped*)overlapped;
-    TVFSArgs* args = ovd->args;
-    args->size = bytes;
-    ovd->cb(args, error, ovd->usd);
-}
-
-static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
-{
-    TOverlapped* overlapped = args->ovd = fu_malloc0(sizeof(TOverlapped));
-    overlapped->overlapped.hEvent = CreateEvent(NULL, true, false, NULL);
-    overlapped->args = args;
-    overlapped->cb = cb;
-    overlapped->usd = usd;
-    if (!ReadFileEx(args->hwnd, args->buffRead, args->size, (LPOVERLAPPED)overlapped, t_vfs_read_finish)) {
-        CloseHandle(overlapped->overlapped.hEvent);
-        fu_free(overlapped);
-        return false;
-    }
-    return true;
-}
-
+/**
+ * @brief 使线程进入可报警等待状态
+ * 如果此时有异步操作已经完成，系统会调用 OVERLAPPED 中的回调函数
+ * @param args
+ * @return true
+ * @return false
+ */
 static bool t_vfs_async_check(TVFSArgs* args)
 {
     // return WAIT_OBJECT_0 == WaitForSingleObjectEx(args->ovd->overlapped.hEvent, 10, true);
@@ -159,7 +169,7 @@ static bool t_vfs_async_check(TVFSArgs* args)
         fu_winapi_print_error(__func__);
         return true;
     }
-    return WAIT_OBJECT_0 == rev;
+    return !rev;
 }
 
 static void t_vfs_async_finish(TVFSArgs* args)
@@ -173,34 +183,59 @@ static void t_vfs_async_cleanup(TVFSArgs* args)
     fu_free(args->ovd);
 }
 
-static bool t_vfs_write(TVFSArgs* args)
+static void t_vfs_read_write_finish(DWORD error, DWORD bytes, LPOVERLAPPED overlapped)
 {
-    DWORD bytesWritten = 0;
-    fu_winapi_return_val_if_fail(WriteFile(args->hwnd, args->buffWrite, args->size, &bytesWritten, NULL), false);
-    args->size = bytesWritten;
-    return bytesWritten;
+    TOverlapped* ovd = (TOverlapped*)overlapped;
+    TVFSArgs* args = ovd->args;
+    args->size = bytes;
+    ovd->cb(args, error, ovd->usd);
 }
 
-// static void t_vfs_class_init(FUObjectClass* oc) { }
+static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
+{
+    TOverlapped* overlapped = args->ovd = fu_malloc0(sizeof(TOverlapped));
+    overlapped->overlapped.hEvent = CreateEvent(NULL, true, false, NULL);
+    overlapped->overlapped.Offset = args->offset;
+    overlapped->args = args;
+    overlapped->cb = cb;
+    overlapped->usd = usd;
+    if (!ReadFileEx(args->hwnd, args->buffRead, args->size, (LPOVERLAPPED)overlapped, t_vfs_read_write_finish)) {
+        CloseHandle(overlapped->overlapped.hEvent);
+        fu_free(overlapped);
+        return false;
+    }
+    return true;
+}
 
-// static TVFS* t_vfs_new()
-// {
-//     // TVFS* vfs = (TVFS*)fu_object_new(T_TYPE_VFS);
-//     TVFS* vfs = (TVFS*)fu_malloc(sizeof(TVFS));
-//     vfs->open = t_vfs_open;
-//     vfs->query_type = t_vfs_query_type;
-//     vfs->read = t_vfs_read;
-//     vfs->read_async = t_vfs_read_async;
-//     vfs->write = t_vfs_write;
-//     return vfs;
-// }
+static bool t_vfs_read_async_continue(TVFSArgs* args)
+{
+    TOverlapped* overlapped = args->ovd;
+    args->offset += args->size;
+    overlapped->overlapped.Offset = args->offset;
+    if (!ReadFileEx(args->hwnd, args->buffRead, args->size, (LPOVERLAPPED)overlapped, t_vfs_read_write_finish)) {
+        CloseHandle(overlapped->overlapped.hEvent);
+        fu_free(overlapped);
+        return false;
+    }
+    return true;
+}
 
-// static void t_vfs_free(TVFS* vfs, TFd fd)
-// {
-//     if (fd)
-//         CloseHandle(fd);
-//     fu_free(vfs);
-// }
+/** 异步写入到文件末尾 */
+static bool t_vfs_write_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
+{
+    TOverlapped* overlapped = args->ovd = fu_malloc0(sizeof(TOverlapped));
+    overlapped->overlapped.hEvent = CreateEvent(NULL, true, false, NULL);
+    overlapped->overlapped.Offset = 0xffffffff;
+    overlapped->overlapped.OffsetHigh = 0xffffffff;
+    overlapped->args = args;
+    overlapped->cb = cb;
+    overlapped->usd = usd;
+    if (!WriteFileEx(args->hwnd, args->buffWrite, args->size, (LPOVERLAPPED)overlapped, t_vfs_read_write_finish)) {
+        CloseHandle(overlapped->overlapped.hEvent);
+        fu_free(overlapped);
+        return false;
+    }
+    return true;
+}
 
-#endif // _TVFS_WINDOW_H_
 #endif // FU_OS_WINDOW

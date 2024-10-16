@@ -15,7 +15,7 @@
 #include "../platform/vfs.linux.h"
 #include "../platform/vfs.window.h"
 #define DEF_READ_BLOCK_LEN 2'000'000
-/**
+
 struct _FUStream {
     FUObject parent;
     FUStreamNode* head;
@@ -39,36 +39,57 @@ static void fu_stream_class_init(FUObjectClass* oc)
     oc->finalize = fu_stream_finalize;
 }
 
-FUStream* fu_stream_new(FUStreamFunc fnSource)
+FUStream* fu_stream_new(FUStreamFunc fn)
 {
-    fu_return_val_if_fail(fnSource, NULL);
+    fu_return_val_if_fail(fn, NULL);
     FUStream* stream = (FUStream*)fu_object_new(FU_TYPE_STREAM);
     stream->tail = stream->head = fu_malloc0(sizeof(FUStreamNode));
-    stream->head->source = fnSource;
+    stream->head->func = fn;
     return stream;
 }
 
-FUObject* fu_stream_init(FUObject* obj, FUStreamFunc fnSource)
+FUObject* fu_stream_init(FUObject* obj, FUStreamFunc fn)
 {
-    fu_return_val_if_fail(obj && fnSource, NULL);
+    fu_return_val_if_fail(obj && fn, NULL);
     FUStream* stream = (FUStream*)obj;
     stream->tail = stream->head = fu_malloc0(sizeof(FUStreamNode));
-    stream->head->source = fnSource;
+    stream->head->func = fn;
     return obj;
 }
 // #define fu_stream_init(obj, fnSource) ((typedef obj) fu_stream_init((FUObject*)obj, fnSource))
 
-FUStream* fu_stream_take_node(FUStream* stream, FUStreamNode** node)
+FUStream* fu_stream_append_node(FUStream* stream, FUStreamFunc fn)
 {
-    fu_return_val_if_fail(stream && node && *node, NULL);
-    FUStreamNode* tail = fu_steal_pointer(node);
+    fu_return_val_if_fail(stream && fn, NULL);
+    FUStreamNode* tail = fu_malloc0(sizeof(FUStreamNode));
     tail->prev = stream->tail;
-    tail->next = NULL;
+    tail->func = fn;
     stream->tail->next = tail;
     stream->tail = tail;
     return stream;
 }
-*/
+
+FUStream* fu_stream_prepend_node(FUStream* stream, FUStreamFunc fn)
+{
+    fu_return_val_if_fail(stream && fn, NULL);
+    FUStreamNode* head = fu_malloc0(sizeof(FUStreamNode));
+    head->next = stream->head;
+    head->func = fn;
+    stream->head->prev = head;
+    stream->head = head;
+    return stream;
+}
+
+void* fu_stream_run(FUStream* stream, void* usd)
+{
+    FUStreamNode* node = stream->head;
+    while (node) {
+        usd = node->func(stream, usd);
+        node = node->next;
+    }
+    return usd;
+}
+
 typedef enum _EFileState {
     E_FILE_STATE_NONE,
     E_FILE_STATE_OPENED,
@@ -236,22 +257,27 @@ bool fu_file_write(FUFile* file, const void* data, size_t size)
  *
  */
 /**
- * 异步操作的执行顺序
- * 异步读指定大小：
+ * Window 异步操作
+ * 异步操作需要通过 FileStream 执行
+ * 1 调用 fu_file_stream_new_from_file 将以异步模式实际打开文件
+ * 2 调用 fu_file_stream_read_async 开始异步操作，保存用户回调 callback & usd
+ *  2.1 调用 t_vfs_read_async 执行异步操作，设置回调函数 cb
+ * 为了使异步操作完成后得到通知，需要线程进入可报警等待状态
+ * 创建自定义事件源：
+ *  2.2 事件源的 check 阶段调用 t_vfs_async_check(WaitForSingleObjectEx) 检查异步操作是否完成（进入可报警等待状态）
+ *      如果事件已完成，系统将调用回调函数 cb
+ *      在这个函数里识别操作是否成功，然后调用 t_vfs_async_finish(SetEvent) 通知主线程异步操作完成
+ *  2.3 事件源的 check 返回 true，执行 dispatch 阶段
+ *      dispatch 中调用用户定义的回调函数 callback，并设置状态为 E_FILE_STREAM_STATE_DONE
+ *  3 用户在其回调函数中使用 _finish 获取异步操作的结果
+ *  4 事件源的 cleanup 阶段识别状态为 E_FILE_STREAM_STATE_DONE，释放全部资源
  */
-
 
 static void fu_file_stream_finalize(FUObject* obj)
 {
     FUFileStream* stream = (FUFileStream*)obj;
     fu_byte_array_free(stream->asyncReaded, true);
     fu_object_unref(stream->file);
-    // FUStreamNode* node = stream->head;
-    // while (node) {
-    //     stream->head = node->next;
-    //     fu_free(node);
-    //     node = stream->head;
-    // }
 }
 
 static void fu_file_stream_class_init(FUObjectClass* oc)
@@ -259,22 +285,13 @@ static void fu_file_stream_class_init(FUObjectClass* oc)
     oc->finalize = fu_file_stream_finalize;
 }
 
-// static FUBytes* fu_file_stream_node_read(FUStreamNode* node, FUFileStream* stream)
-// {
-//     // FUFile* file = stream->file;
-//     // DWORD read = 0;
-//     // DWORD len = 0;
-//     // if (E_FILE_OPEN_EXIST == file->mode) {
-//     // }
-// }
-
 FUFileStream* fu_file_stream_new_from_file(FUFile* file)
 {
     fu_return_val_if_fail(file, NULL);
     fu_return_val_if_fail_with_message(EFU_FILE_TYPE_REGULAR == file->type, "File is not regular\n", NULL);
     fu_return_val_if_fail_with_message(!file->state, "File has been opened\n", NULL);
 
-    file->args->mode |= E_VFS_FLAGS_ASYNC; // FILE_FLAG_OVERLAPPED;
+    file->args->flags |= E_VFS_FLAGS_ASYNC; // FILE_FLAG_OVERLAPPED;
     fu_file_check_if_open(file);
 
     FUFileStream* stream = (FUFileStream*)fu_object_new(FU_TYPE_FILE_STREAM);
@@ -283,7 +300,7 @@ FUFileStream* fu_file_stream_new_from_file(FUFile* file)
     return stream;
 }
 
-static bool fu_file_stream_read_callback(TVFSArgs* args, TVFSErrorCode error, void* usd)
+static bool fu_file_stream_callback(TVFSArgs* args, TVFSErrorCode error, void* usd)
 {
     // printf("%s\n", __func__);
     FUFileStream* stream = (FUFileStream*)usd;
@@ -303,7 +320,8 @@ static bool fu_file_stream_source_check(FUSource* src, void* usd)
 static bool fu_file_stream_source_dispatch(void* usd)
 {
     FUFileStream* stream = (FUFileStream*)usd;
-    stream->callback((FUObject*)stream, (FUAsyncResult*)stream->file->args, stream->usd);
+    if (FU_LIKELY(stream->callback))
+        stream->callback((FUObject*)stream, (FUAsyncResult*)stream->file->args, stream->usd);
     stream->state = E_FILE_STREAM_STATE_DONE;
     return false;
 }
@@ -336,7 +354,7 @@ bool fu_file_stream_read_async(FUFileStream* fileStream, size_t size, FUAsyncRea
 
     fileStream->callback = callback;
     fileStream->usd = usd;
-    fu_winapi_return_val_if_fail(t_vfs_read_async(args, fu_file_stream_read_callback, fileStream), false);
+    fu_winapi_return_val_if_fail(t_vfs_read_async(args, fu_file_stream_callback, fileStream), false);
 
     // 自动清理
     FUSource* src = fu_source_new(&defAsyncSourceFuncs, fileStream);
@@ -359,7 +377,6 @@ void* fu_file_stream_read_finish(FUFileStream* fileStream, FUAsyncResult* res, F
 
 static bool fu_file_stream_read_all_callback(TVFSArgs* args, TVFSErrorCode error, void* usd)
 {
-    printf("%s\n", __func__);
     FUFileStream* stream = (FUFileStream*)usd;
     if (error) {
         args->lastError = error;
@@ -380,24 +397,24 @@ static bool fu_file_stream_read_all_callback(TVFSArgs* args, TVFSErrorCode error
     return !t_vfs_read_async_continue(args);
 }
 
-static bool fu_file_stream_source_check_all(FUSource* src, void* usd)
+static bool fu_file_stream_read_all_source_check(FUSource* src, void* usd)
 {
     FUFileStream* stream = (FUFileStream*)usd;
     return t_vfs_async_check((TVFSArgs*)stream->file->args);
 }
 
-static bool fu_file_stream_source_dispatch_all(void* usd)
-{
-    FUFileStream* stream = (FUFileStream*)usd;
-    stream->callback((FUObject*)stream, (FUAsyncResult*)stream->file->args, stream->usd);
-    stream->state = E_FILE_STREAM_STATE_DONE;
-    return false;
-}
+// static bool fu_file_stream_read_all_source_dispatch(void* usd)
+// {
+//     FUFileStream* stream = (FUFileStream*)usd;
+//     stream->callback((FUObject*)stream, (FUAsyncResult*)stream->file->args, stream->usd);
+//     stream->state = E_FILE_STREAM_STATE_DONE;
+//     return false;
+// }
 
 bool fu_file_stream_read_all_async(FUFileStream* fileStream, FUAsyncReadyCallback callback, void* usd)
 {
     static const FUSourceFuncs defAsyncSourceFuncs = {
-        .check = fu_file_stream_source_check_all,
+        .check = fu_file_stream_read_all_source_check,
         .cleanup = fu_file_stream_source_cleanup
     };
     fu_return_val_if_fail(fileStream, false);
@@ -411,7 +428,7 @@ bool fu_file_stream_read_all_async(FUFileStream* fileStream, FUAsyncReadyCallbac
 
     // 自动清理
     FUSource* src = fu_source_new(&defAsyncSourceFuncs, fileStream);
-    fu_source_set_callback(src, fu_file_stream_source_dispatch_all, fu_object_ref(fileStream));
+    fu_source_set_callback(src, fu_file_stream_source_dispatch, fu_object_ref(fileStream));
     fu_source_attach(src, NULL);
     fileStream->state = E_FILE_STREAM_STATE_PENDING;
     return true;
@@ -425,7 +442,56 @@ FUBytes* fu_file_stream_read_all_finish(FUFileStream* fileStream, FUAsyncResult*
             *error = fu_error_new_from_code(args->lastError);
         return NULL;
     }
-    
+
     return fu_byte_array_to_bytes(fileStream->asyncReaded);
     // return fu_by(args->buffRead, args->size);
+}
+
+static void fu_file_stream_write_source_cleanup(FUSource* src, void* usd)
+{
+    FUFileStream* stream = (FUFileStream*)usd;
+    if (E_FILE_STREAM_STATE_DONE != stream->state)
+        return;
+
+    t_vfs_async_cleanup(stream->file->args);
+    fu_object_unref(stream);
+    fu_object_unref(src);
+}
+
+/** 由于跨平台设计，目前只支持写入到末尾 */
+bool fu_file_stream_write_async(FUFileStream* fileStream, const void* data, size_t size, FUAsyncReadyCallback callback, void* usd)
+{
+    static const FUSourceFuncs defAsyncSourceFuncs = {
+        .check = fu_file_stream_source_check,
+        .cleanup = fu_file_stream_write_source_cleanup
+    };
+    fu_return_val_if_fail(fileStream, false);
+    if (FU_UNLIKELY(0 >= size || fileStream->state))
+        return false;
+
+    TVFSArgs* args = fileStream->file->args;
+    args->buffWrite = data;
+    args->size = size;
+    fileStream->callback = callback;
+    fileStream->usd = usd;
+
+    fu_winapi_return_val_if_fail(t_vfs_write_async(args, fu_file_stream_callback, fileStream), false);
+
+    // 自动清理
+    FUSource* src = fu_source_new(&defAsyncSourceFuncs, fileStream);
+    fu_source_set_callback(src, fu_file_stream_source_dispatch, fu_object_ref(fileStream));
+    fu_source_attach(src, NULL);
+    fileStream->state = E_FILE_STREAM_STATE_PENDING;
+    return true;
+}
+
+size_t fu_file_stream_write_finish(FUFileStream* fileStream, FUAsyncResult* res, FUError** error)
+{
+    TVFSArgs* args = (TVFSArgs*)res;
+    if (E_FILE_STREAM_STATE_SUCCESS != fileStream->state) {
+        if (error)
+            *error = fu_error_new_from_code(args->lastError);
+        return 0;
+    }
+    return args->size;
 }

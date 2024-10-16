@@ -1,5 +1,5 @@
 #pragma once
-#include "../core/types.h"
+
 #ifdef FU_OS_LINUX
 #define _GNU_SOURCE
 #include <fcntl.h>
@@ -29,7 +29,6 @@ typedef struct _TOverlapped {
     struct io_uring_sqe* sqe;
     struct io_uring_cqe* cqe;
     TVFSArgs* args;
-    // FUByteArray* buffRead;
     TVFSAsyncCallback cb;
     int cqeCnt;
     void* usd;
@@ -37,8 +36,6 @@ typedef struct _TOverlapped {
 
 struct _TVFSArgs {
     EVFSFlags flags;
-    /** unused */
-    mode_t mode;
     /** file path */
     char* path;
     /** file handle */
@@ -134,15 +131,12 @@ static bool t_vfs_async_check(TVFSArgs* args)
 static void t_vfs_async_cleanup(TVFSArgs* args)
 {
     io_uring_queue_exit(&args->ovd->ring);
-    // fu_byte_array_free(args->ovd->buffRead, true);
-    // fu_free(args->ovd);
     fu_clear_pointer((void**)&args->ovd, fu_free);
 }
 
 static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
 {
     args->ovd = fu_malloc0(sizeof(TOverlapped));
-    // args->ovd->buffRead = fu_byte_array_new();
     args->ovd->args = args;
     args->ovd->cb = cb;
     args->ovd->usd = usd;
@@ -195,4 +189,4 @@ static bool t_vfs_write(TVFSArgs* args)
     args->size = bytes;
     return true;
 }
-#endif // defined(_linux) || defined(__linux)
+#endif // FU_OS_LINUX

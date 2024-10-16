@@ -10,14 +10,6 @@
 #define FU_UNLIKELY(expr) (expr)
 #endif
 
-#if defined(_WIN64) || defined(__WIN64)
-#define FU_OS_WINDOW
-#elif defined(_linux) || defined(__linux)
-#define FU_OS_LINUX
-#else
-#warning "Unknow OS"
-#endif
-
 typedef int (*FUCompareFunc)(const void* a, const void* b);
 typedef int (*FUCompareDataFunc)(const void* a, const void* b, void* usd);
 typedef bool (*FUEqualFunc)(const void* a, const void* b);

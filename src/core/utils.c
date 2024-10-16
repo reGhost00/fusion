@@ -3,13 +3,10 @@
 #include <stdatomic.h>
 #include <string.h>
 
-#include "utils.h"
 #include <mimalloc.h>
-
-#ifdef FU_NO_TRACK_MEMORY
-#define fu_track_memory(p, size) (p)
-#else
-
+// custom
+#include "utils.h"
+#ifndef FU_NO_TRACK_MEMORY
 #include "sc_map.h"
 #include "thread.h"
 
@@ -17,7 +14,7 @@ static struct sc_map_64 defMemoryTable;
 static atomic_uint defMemoryTableCount = 0;
 static bool ifMemoryTableInit = false;
 #ifdef FU_OS_WINDOW
-
+static FUMutex defMemoryTableMutex;
 #else
 static pthread_mutex_t defMemoryTableMutex = PTHREAD_MUTEX_INITIALIZER;
 static bool isMutexInit = false;
@@ -42,18 +39,18 @@ static void fu_check_memory_leak()
 
 static void* fu_track_memory(void* p, size_t size)
 {
-    #ifdef FU_OS_WINDOW
+#ifdef FU_OS_WINDOW
     if (FU_UNLIKELY(!defMemoryTableMutex))
-        fu_mutex_init(&defMemoryTableMutex);
-    #endif
-    fu_mutex_lock(&defMemoryTableMutex);
+        fu_mutex_init(defMemoryTableMutex);
+#endif
+    fu_mutex_lock(defMemoryTableMutex);
     if (!atomic_fetch_add_explicit(&defMemoryTableCount, 1, memory_order_relaxed) && !ifMemoryTableInit) {
         sc_map_init_64(&defMemoryTable, 0, 0);
         atexit(fu_check_memory_leak);
         ifMemoryTableInit = true;
     }
     sc_map_put_64(&defMemoryTable, (uintptr_t)p, size);
-    fu_mutex_unlock(&defMemoryTableMutex);
+    fu_mutex_unlock(defMemoryTableMutex);
     return p;
 }
 
@@ -87,15 +84,15 @@ void* fu_realloc(void* p, size_t size)
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
         pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-        pthread_mutex_init(&defMemoryTableMutex, &attr);
+        pthread_mutex_init(defMemoryTableMutex, &attr);
         pthread_mutexattr_destroy(&attr);
     }
 #endif
-    fu_mutex_lock(&defMemoryTableMutex);
+    fu_mutex_lock(defMemoryTableMutex);
     atomic_fetch_sub_explicit(&defMemoryTableCount, 1, memory_order_relaxed);
     sc_map_del_64(&defMemoryTable, (uintptr_t)p);
     void* rev = fu_track_memory(mi_realloc(p, size), size);
-    fu_mutex_unlock(&defMemoryTableMutex);
+    fu_mutex_unlock(defMemoryTableMutex);
     return rev;
 }
 
@@ -103,13 +100,50 @@ void fu_free(void* p)
 {
     if (FU_UNLIKELY(!p))
         return;
-    fu_mutex_lock(&defMemoryTableMutex);
+    fu_mutex_lock(defMemoryTableMutex);
     sc_map_del_64(&defMemoryTable, (uintptr_t)p);
     if (sc_map_found(&defMemoryTable) && atomic_load_explicit(&defMemoryTableCount, memory_order_relaxed))
         atomic_fetch_sub_explicit(&defMemoryTableCount, 1, memory_order_relaxed);
     // defMemoryTableCount -= 1;
     mi_free(p);
-    fu_mutex_unlock(&defMemoryTableMutex);
+    fu_mutex_unlock(defMemoryTableMutex);
+}
+
+#else // FU_NO_TRACK_MEMORY
+#define fu_track_memory(p, size) (p)
+#endif // FU_NO_TRACK_MEMORY
+#ifndef FU_NO_DEBUG
+void fu_winapi_print_error_from_code(const char* prefix, const DWORD code)
+{
+    wchar_t* strW = NULL;
+    size_t len;
+    if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&strW, 0, NULL)) {
+        char* strU = fu_wchar_to_utf8(strW, &len);
+        fprintf(stderr, "%s %ld %s\n", prefix, code, strU);
+        LocalFree(strW);
+        fu_free(strU);
+    } else
+        fprintf(stderr, "%s %ld\n", prefix, code);
+}
+
+#endif
+#ifdef FU_OS_WINDOW
+char* fu_wchar_to_utf8(const wchar_t* wstr, size_t* len)
+{
+    if (!(*len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL)))
+        return NULL;
+    char* str = fu_track_memory(mi_malloc(*len), *len);
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, str, *len, NULL, NULL);
+    return str;
+}
+
+wchar_t* fu_utf8_to_wchar(const char* str, size_t* len)
+{
+    if (!(*len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0)))
+        return NULL;
+    wchar_t* wstr = fu_track_memory(mi_malloc(*len * sizeof(wchar_t)), *len * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, *len);
+    return wstr;
 }
 #endif
 
@@ -306,35 +340,6 @@ char* fu_strnfill(size_t length, char ch)
 }
 
 /**
- * g_stpcpy:
- * @dest: destination buffer
- * @src: source string
- *
- * Copies a nul-terminated string into the destination buffer, including
- * the trailing nul byte, and returns a pointer to the trailing nul byte
- * in `dest`.  The return value is useful for concatenating multiple
- * strings without having to repeatedly scan for the end.
- *
- * Returns: a pointer to the trailing nul byte in `dest`
- **/
-char* fu_stpcpy(char* dest, const char* src)
-{
-    fu_return_val_if_fail(dest && src, NULL);
-#ifdef HAVE_STPCPY
-    return stpcpy(dest, src);
-#else
-    char* d = dest;
-    const char* s = src;
-
-    do
-        *d++ = *s;
-    while (*s++ != '\0');
-
-    return d - 1;
-#endif
-}
-
-/**
  * g_strdup_printf:
  * @format: (not nullable): a standard `printf()` format string, but notice
  *   [string precision pitfalls](string-utils.html#string-precision-pitfalls)
@@ -363,50 +368,6 @@ char* fu_strdup_printf(const char* format, ...)
     return buff;
 }
 
-#ifdef FU_OS_WINDOW
-char* fu_wchar_to_utf8(const wchar_t* wstr, size_t* len)
-{
-    if (!(*len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL)))
-        return NULL;
-    char* str = fu_track_memory(mi_malloc(*len), *len);
-    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, str, *len, NULL, NULL);
-    return str;
-}
-
-wchar_t* fu_utf8_to_wchar(const char* str, size_t* len)
-{
-    if (!(*len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0)))
-        return NULL;
-    wchar_t* wstr = fu_track_memory(mi_malloc(*len * sizeof(wchar_t)), *len * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, *len);
-    return wstr;
-}
-
-FUError* fu_error_new_from_code(int code)
-{
-    LPWSTR msgBuff = NULL;
-    size_t len = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), msgBuff, 0, NULL);
-    if (len) {
-        char* msg = fu_wchar_to_utf8(msgBuff, &len);
-        LocalFree(msgBuff);
-        if (FU_LIKELY(msg))
-            return fu_error_new_take(code, &msg);
-    }
-    FUError* err = fu_malloc(sizeof(FUError));
-    err->message = fu_strdup("Unknown error");
-    err->code = code;
-    return err;
-}
-#else
-FUError* fu_error_new_from_code(int code)
-{
-    FUError* err = fu_malloc(sizeof(FUError));
-    err->message = fu_strdup(strerror(code));
-    err->code = code;
-    return err;
-}
-#endif
-
 FUError* fu_error_new_take(int code, char** msg)
 {
     FUError* err = fu_malloc(sizeof(FUError));
@@ -419,4 +380,22 @@ void fu_error_free(FUError* err)
 {
     fu_free(err->message);
     fu_free(err);
+}
+
+FUError* fu_error_new_from_code(int code)
+{
+#ifdef FU_OS_WINDOW
+    LPWSTR msgBuff = NULL;
+    size_t len = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), msgBuff, 0, NULL);
+    if (len) {
+        char* msg = fu_wchar_to_utf8(msgBuff, &len);
+        LocalFree(msgBuff);
+        if (FU_LIKELY(msg))
+            return fu_error_new_take(code, &msg);
+    }
+#endif
+    FUError* err = fu_malloc(sizeof(FUError));
+    err->message = fu_strdup("Unknown error");
+    err->code = code;
+    return err;
 }

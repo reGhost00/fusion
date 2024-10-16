@@ -1116,7 +1116,7 @@ uint32_t fu_array_get_element_size(FUArray* array)
 FUArray* fu_array_append_vals(FUArray* array, const void* data, uint32_t len)
 {
     fu_return_val_if_fail(array, NULL);
-    if (!len)
+    if (FU_UNLIKELY(!(len && data)))
         return array;
     TArray* arr = (TArray*)array;
     fu_array_maybe_expand(arr, len);
@@ -1563,12 +1563,12 @@ FUBytes* fu_byte_array_free_to_bytes(FUByteArray* array)
 FUBytes* fu_byte_array_to_bytes(FUByteArray* array)
 {
     fu_return_val_if_fail(array, NULL);
-    if (FU_UNLIKELY(!array->len)) return NULL;
+    if (FU_UNLIKELY(!array->len))
+        return NULL;
     TArray* arr = (TArray*)array;
     void* dt = fu_memdup(arr->data, arr->len);
     return fu_bytes_new_take(&dt, arr->len);
 }
-
 
 /**
  * fu_byte_array_ref:

@@ -267,14 +267,14 @@ void fu_object_unref(FUObject* obj)
     if (1 >= atomic_fetch_sub(&real->ref, 1))
         fu_object_finalize(obj);
 }
-
+#undef fu_object_set_user_data
 void fu_object_set_user_data(FUObject* obj, const char* key, void* data, FUNotify notify)
 {
     TObject* real = (TObject*)obj;
     TUserData* usd = t_usd_new(key, data, notify);
     fu_hash_table_insert(real->data, usd->key, usd);
 }
-
+#undef fu_object_get_user_data
 void* fu_object_get_user_data(FUObject* obj, const char* key)
 {
     TObject* real = (TObject*)obj;

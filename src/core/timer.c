@@ -197,8 +197,8 @@ uint64_t fu_timer_stop(FUTimer* obj)
 /**
  * @brief 计算两个时间差
  * 精度: 微秒
- * @param obj 
- * @return uint64_t 
+ * @param obj
+ * @return uint64_t
  */
 uint64_t fu_timer_measure(FUTimer* obj)
 {
@@ -220,9 +220,9 @@ static void fu_timeout_source_class_init(FUObjectClass* oc)
 /**
  * @brief check if the timeout source should be triggered
  * precision: 1ms
- * @param src 
- * @param usd 
- * @return Check 
+ * @param src
+ * @param usd
+ * @return Check
  */
 static bool fu_timeout_source_check(FUSource* src, void* usd)
 {
