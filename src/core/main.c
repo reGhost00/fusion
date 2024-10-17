@@ -8,7 +8,7 @@
 #define GLAD_VULKAN_IMPLEMENTATION // Necessary for headeronly version.
 #include <glad/vulkan.h>
 #endif
-#include "main.h"
+#include "main_inner.h"
 #define _FU_CORE_MAIN_ENABLE_
 #include "../_inner.h"
 #include "array.h"
@@ -62,6 +62,7 @@ FUSource* fu_source_new(const FUSourceFuncs* fns, void* usd)
     src->id = atomic_fetch_add_explicit(&defNextSourceId, 1, memory_order_relaxed);
     src->fns = fns;
     src->usdFN = usd;
+    printf("%s %p\n", __func__, usd);
     return rev;
 }
 
@@ -70,6 +71,7 @@ void fu_source_set_callback(FUSource* source, FUSourceCallback cb, void* usd)
     TSource* real = (TSource*)source;
     real->cb = cb;
     real->usdCB = usd;
+    printf("%s %p\n", __func__, usd);
 }
 
 void fu_source_remove(FUSource* source)
@@ -223,13 +225,12 @@ void fu_main_loop_run(FUMainLoop* loop)
     // fu_return_if_fail(loop->cnt && !loop->active);
     loop->active = true;
     do {
-        if (FU_LIKELY(fns[loop->state]))
+        if (fns[loop->state])
             fns[loop->state](loop);
         loop->state = ((loop->state + 1) % E_MAIN_LOOP_STATE_CNT);
         if (!loop->state) {
             if (FU_UNLIKELY(!(loop->active = 0 < atomic_load_explicit(&loop->cnt, memory_order_relaxed))))
                 return;
-            glfwPollEvents();
         }
     } while (loop->active);
 }

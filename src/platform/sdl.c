@@ -315,6 +315,9 @@ FUWindow* fu_window_new(FUApp* app, FUWindowConfig* cfg)
     win->event = t_window_event_new();
     win->sources = fu_ptr_array_new_full(3, (FUNotify)fu_source_destroy);
 
+    if (0 < atomic_fetch_add_explicit(&defWindowCount, 1, memory_order_relaxed))
+        return win;
+
     FUSource* src = (FUSource*)fu_source_new(&defWindowActiveSourceFuncs, win);
     fu_source_set_callback(src, (FUSourceCallback)t_window_event_wrap_dispatch, win);
     fu_source_attach(src, _app->loop);

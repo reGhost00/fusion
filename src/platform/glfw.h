@@ -1,7 +1,5 @@
 #ifdef FU_USE_GLFW
-#ifndef _FU_PLATFORM_GLFW_H_
-#define _FU_PLATFORM_GLFW_H_
-#define _FU_PLATFORM_EVENT_WRAP_
+#pragma once
 #include "../core/main.h"
 
 typedef enum _EFUKeyboardKey {
@@ -186,14 +184,14 @@ typedef enum _EFUMouseButton {
 } EFUMouseButton;
 
 typedef struct _FUMouseEvent {
-    FUVec2 position;
+    FUOffset2 position;
     EFUMouseButton button;
     EFUModKey mods;
 } FUMouseEvent;
 
 typedef struct _FUScrollEvent {
-    FUVec2 offset;
-    FUVec2 delta;
+    FUOffset2 offset;
+    FUOffset2 delta;
 } FUScrollEvent;
 
 uint64_t fu_window_get_type();
@@ -203,6 +201,4 @@ typedef struct _FUWindow FUWindow;
 FUWindow* fu_window_new(FUApp* app, FUWindowConfig* cfg);
 void fu_window_take_source(FUWindow* win, FUSource** source);
 
-#endif
-#endif
-// #endif
+#endif // FU_USE_GLFW

@@ -1,5 +1,4 @@
-#ifndef __FU_MAIN_H__
-#define __FU_MAIN_H__
+#pragma once
 
 // #include "_def.h"
 #include "../renderer/gl2.h"
@@ -28,8 +27,6 @@ FU_DECLARE_TYPE(FUMainLoop, fu_main_loop)
 #define FU_TYPE_MAIN_LOOP (fu_main_loop_get_type())
 
 typedef struct _FUApp {
-    // FUObject parent;
-    // FUMainLoop* loop;
     void* dummy[5];
 } FUApp;
 uint64_t fu_app_get_type();
@@ -64,9 +61,3 @@ FUApp* fu_app_new(void);
 void fu_app_take_source(FUApp* app, FUSource** source);
 void fu_app_run(FUApp* app);
 void fu_app_quit(FUApp* app);
-
-// FUWindow* fu_window_new(FUApp* app, const char* title, const uint32_t width, const uint32_t height);
-
-// FURenderer* fu_app_get_renderer(FUApp* app);
-// void fu_app_swap_buffers(FUApp* app);
-#endif /* __GLIB_TYPEOF_H__ */

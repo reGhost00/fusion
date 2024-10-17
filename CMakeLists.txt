@@ -25,8 +25,8 @@ set(MI_DISABLE_INSTALL ON CACHE BOOL "no install")
 add_subdirectory("libs/mimalloc")
 include_directories("libs/mimalloc/include")
 
-option(FU_USE_GLFW "Use GLFW for windowing" ON)
-option(FU_USE_SDL "Use SDL for windowing" ON)
+option(FU_USE_GLFW "Use GLFW for windowing" OFF)
+option(FU_USE_SDL "Use SDL for windowing" OFF)
 
 if (FU_USE_SDL)
     find_package(SDL2 REQUIRED)

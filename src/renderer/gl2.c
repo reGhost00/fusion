@@ -299,8 +299,9 @@ FUGLSurface* fu_gl_surface_new(FUWindow* window)
     surface->window = fu_object_ref(window);
     surface->clearColor = fu_malloc(sizeof(FUVec4));
     surface->shader = fu_steal_pointer(&shader);
+#ifdef FU_USE_GLFW
     glfwGetFramebufferSize(window->window, &surface->width, &surface->height);
-
+#endif
     glGenVertexArrays(1, &surface->VAO);
     glGenBuffers(1, &surface->VBO);
     glGenBuffers(1, &surface->IBO);
@@ -324,9 +325,11 @@ FUGLSurface* fu_gl_surface_new(FUWindow* window)
 
 void fu_gl_surface_update_viewport_size(FUGLSurface* surface)
 {
+#ifdef FU_USE_GLFW
     fu_return_if_fail(surface);
     glfwGetFramebufferSize(surface->window->window, &surface->width, &surface->height);
     glViewport(0, 0, surface->width, surface->height);
+#endif
 }
 
 void fu_gl_surface_draw(FUGLSurface* surface)
@@ -365,7 +368,9 @@ void fu_gl_surface_draw(FUGLSurface* surface)
         glDrawElements(GL_TRIANGLES, vertexLen * indexLen, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
+#ifdef FU_USE_GLFW
         glfwSwapBuffers(surface->window->window);
+#endif
     }
     // fu_print_buff_float(vertices, 8, vertexCount);
     // fu_print_buff_uint(indices, 3, indiexCount);

@@ -1,17 +1,15 @@
 #ifdef FU_USE_GLFW
 #define GLFW_INCLUDE_NONE
+#include <stdio.h>
+// libs
 #include "glad/gl.h"
 #include <GLFW/glfw3.h>
-#include <stdio.h>
 // custom header
+#include "../core/main_inner.h"
 #include "../core/timer.h"
 #include "../core/utils.h"
 #include "../renderer/gl2.h"
-#include "glfw.h"
-
-#define _FU_CORE_MAIN_ENABLE_
-#define _FU_PLATFORM_GLFW_ENABLE_
-#include "../_inner.h"
+#include "glfw_inner.h"
 
 #define DEF_KEYPRESS_MAX_DUR 2000
 #define DEF_OFFSET_MAX_DUR 500
@@ -20,7 +18,7 @@ typedef enum _EGlfwEvent {
     E_GLFW_EVENT_CLOSE,
     E_GLFW_EVENT_FOCUS,
     E_GLFW_EVENT_RESIZE,
-    E_GLFW_EVENT_SCALE,
+    // E_GLFW_EVENT_SCALE,
     E_GLFW_EVENT_KEYDOWN,
     E_GLFW_EVENT_KEYUP,
     E_GLFW_EVENT_KEYPRESS,
@@ -38,14 +36,14 @@ static atomic_int defWindowCount = 0;
 static TWindowEvent* t_window_event_new()
 {
     TWindowEvent* evt = fu_malloc0(sizeof(TWindowEvent));
-    evt->scale = fu_malloc0(sizeof(FUVec2));
+    // evt->scale = fu_malloc0(sizeof(FUVec2));
     evt->resize = fu_malloc0(sizeof(FUSize));
     evt->keyboard = fu_malloc0(sizeof(FUKeyboardEvent));
     evt->mouse = fu_malloc0(sizeof(FUMouseEvent));
     evt->scroll = fu_malloc0(sizeof(FUScrollEvent));
 
     evt->next = fu_malloc0(sizeof(TWindowEvent));
-    evt->next->scale = fu_malloc0(sizeof(FUVec2));
+    // evt->next->scale = fu_malloc0(sizeof(FUVec2));
     evt->next->resize = fu_malloc0(sizeof(FUSize));
     evt->next->keyboard = fu_malloc0(sizeof(FUKeyboardEvent));
     evt->next->mouse = fu_malloc0(sizeof(FUMouseEvent));
@@ -57,14 +55,14 @@ static TWindowEvent* t_window_event_new()
 
 static void t_window_event_free(TWindowEvent* evt)
 {
-    fu_free(evt->next->scale);
+    // fu_free(evt->next->scale);
     fu_free(evt->next->resize);
     fu_free(evt->next->keyboard);
     fu_free(evt->next->mouse);
     fu_free(evt->next->scroll);
     fu_free(evt->next);
 
-    fu_free(evt->scale);
+    // fu_free(evt->scale);
     fu_free(evt->resize);
     fu_free(evt->keyboard);
     fu_free(evt->mouse);
@@ -111,16 +109,16 @@ static void t_glfw_resize_callback(GLFWwindow* window, int width, int height)
     fu_signal_emit_with_param(defGlfwSignals[E_GLFW_EVENT_RESIZE], evt->resize);
 }
 
-static void t_glfw_scale_callback(GLFWwindow* window, float xs, float ys)
-{
-    FUWindow* win = (FUWindow*)glfwGetWindowUserPointer(window);
-    TWindowEvent* evt = win->event = win->event->next;
-    evt->type = E_WINDOW_EVENT_SCALE;
-    evt->stmp = fu_timer_get_stmp();
-    evt->scale->x = xs;
-    evt->scale->y = ys;
-    fu_signal_emit_with_param(defGlfwSignals[E_GLFW_EVENT_SCALE], evt->scale);
-}
+// static void t_glfw_scale_callback(GLFWwindow* window, float xs, float ys)
+// {
+//     FUWindow* win = (FUWindow*)glfwGetWindowUserPointer(window);
+//     TWindowEvent* evt = win->event = win->event->next;
+//     evt->type = E_WINDOW_EVENT_SCALE;
+//     evt->stmp = fu_timer_get_stmp();
+//     evt->scale->x = xs;
+//     evt->scale->y = ys;
+//     fu_signal_emit_with_param(defGlfwSignals[E_GLFW_EVENT_SCALE], evt->scale);
+// }
 
 static void t_glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -134,7 +132,7 @@ static void t_glfw_key_callback(GLFWwindow* window, int key, int scancode, int a
     evt->keyboard->name = glfwGetKeyName(key, scancode);
     if (!action) {
         fu_signal_emit_with_param(defGlfwSignals[E_GLFW_EVENT_KEYUP], evt->keyboard);
-        if (/*E_WINDOW_EVENT_KEYBOARD == evt->type &&*/ DEF_KEYPRESS_MAX_DUR > evt->stmp - evt->next->stmp)
+        if (DEF_KEYPRESS_MAX_DUR > evt->stmp - evt->next->stmp)
             fu_signal_emit_with_param(defGlfwSignals[E_GLFW_EVENT_KEYPRESS], evt->keyboard);
         return;
     }
@@ -192,7 +190,7 @@ static void t_glfw_event_signal_wrap(FUWindow* win)
     glfwSetWindowCloseCallback(win->window, t_glfw_close_callback);
     glfwSetWindowFocusCallback(win->window, t_glfw_focus_callback);
     glfwSetWindowSizeCallback(win->window, t_glfw_resize_callback);
-    glfwSetWindowContentScaleCallback(win->window, t_glfw_scale_callback);
+    // glfwSetWindowContentScaleCallback(win->window, t_glfw_scale_callback);
     glfwSetKeyCallback(win->window, t_glfw_key_callback);
     glfwSetCursorPosCallback(win->window, t_glfw_cursor_position_callback);
     glfwSetMouseButtonCallback(win->window, t_glfw_mouse_button_callback);
@@ -229,27 +227,26 @@ static GLFWwindow* t_glfw_new_window(FUWindowConfig* cfg)
 //
 // window
 
-static bool t_window_remain_cb(FUWindow* usd)
+static bool t_window_event_wrap_dispatch(FUWindow* usd)
 {
+    glfwPollEvents();
     return 0 < atomic_load_explicit(&defWindowCount, memory_order_relaxed);
     // return usd->active;
 }
 
-static void t_window_remain_cleanup(FUSource* source, FUWindow* usd)
+static void t_window_event_wrap_cleanup(FUSource* source, FUWindow* usd)
 {
     // 自动清理
     if (0 < atomic_load_explicit(&defWindowCount, memory_order_relaxed))
         return;
-    printf("%s\n", __func__);
     fu_source_remove(source);
     fu_object_unref(source);
 }
 
 static void fu_window_finalize(FUObject* obj)
 {
-    printf("%s\n", __func__);
     FUWindow* win = (FUWindow*)obj;
-    TApp* app = win->app;
+    TApp* app = (TApp*)win->app;
     // 例外：FUWindow 是链表
     if (win->next)
         win->next->prev = win->prev;
@@ -257,10 +254,8 @@ static void fu_window_finalize(FUObject* obj)
         win->prev->next = win->next;
     glfwDestroyWindow(win->window);
     fu_ptr_array_unref(win->sources);
-    fu_object_unref(app);
-    // fu_object_unref(win->renderer);
-    // fu_object_unref(win->surface);
     t_window_event_free(win->event);
+    fu_object_unref(app);
     atomic_fetch_sub_explicit(&defWindowCount, 1, memory_order_relaxed);
 }
 
@@ -284,7 +279,7 @@ static void fu_window_class_init(FUObjectClass* oc)
     defGlfwSignals[E_GLFW_EVENT_CLOSE] = fu_signal_new("close", oc, false);
     defGlfwSignals[E_GLFW_EVENT_FOCUS] = fu_signal_new("focus", oc, true);
     defGlfwSignals[E_GLFW_EVENT_RESIZE] = fu_signal_new("resize", oc, true);
-    defGlfwSignals[E_GLFW_EVENT_SCALE] = fu_signal_new("scale", oc, true);
+    // defGlfwSignals[E_GLFW_EVENT_SCALE] = fu_signal_new("scale", oc, true);
     defGlfwSignals[E_GLFW_EVENT_KEYDOWN] = fu_signal_new("key-down", oc, true);
     defGlfwSignals[E_GLFW_EVENT_KEYUP] = fu_signal_new("key-up", oc, true);
     defGlfwSignals[E_GLFW_EVENT_KEYPRESS] = fu_signal_new("key-press", oc, true);
@@ -313,26 +308,23 @@ uint64_t fu_window_get_type()
 FUWindow* fu_window_new(FUApp* app, FUWindowConfig* cfg)
 {
     static const FUSourceFuncs defWindowActiveSourceFuncs = {
-        .cleanup = (FUSourceFuncRevVoid)t_window_remain_cleanup
+        .cleanup = (FUSourceFuncRevVoid)t_window_event_wrap_cleanup
     };
 
     fu_return_val_if_fail(app && cfg, NULL);
 
     FUWindow* win = (FUWindow*)fu_object_new(FU_TYPE_WINDOW);
-    TApp* _app = win->app = (TApp*)fu_object_ref(app);
+    TApp* _app = (TApp*)(win->app = fu_object_ref(app));
     win->window = t_glfw_new_window(cfg);
-    // win->renderer = fu_gl_renderer_new_with_window(cfg, &win->window);
-    // win->surface = fu_surface_new(win->renderer);
     win->event = t_window_event_new();
     win->sources = fu_ptr_array_new_full(3, (FUNotify)fu_source_destroy);
     atomic_init(&win->active, true);
     t_glfw_event_signal_wrap(win);
-
     if (0 < atomic_fetch_add_explicit(&defWindowCount, 1, memory_order_relaxed))
         return win;
 
     FUSource* src = (FUSource*)fu_source_new(&defWindowActiveSourceFuncs, win);
-    fu_source_set_callback(src, (FUSourceCallback)t_window_remain_cb, win);
+    fu_source_set_callback(src, (FUSourceCallback)t_window_event_wrap_dispatch, win);
     fu_source_attach(src, _app->loop);
     return win;
 }
@@ -340,20 +332,9 @@ FUWindow* fu_window_new(FUApp* app, FUWindowConfig* cfg)
 void fu_window_take_source(FUWindow* win, FUSource** source)
 {
     FUSource* src = fu_steal_pointer(source);
-    TApp* app = win->app;
+    TApp* app = (TApp*)win->app;
     fu_ptr_array_push(win->sources, src);
     fu_source_attach(src, app->loop);
 }
-
-// void fu_window_free(FUWindow* win) {
-//     printf("%s\n", __func__);
-//     TApp* app = win->app;
-//     uint32_t idx = win->idx;
-//     fu_ptr_array_steal_index(app->windows, idx);
-//     fu_object_unref(win->app);
-//     fu_object_unref(win->surface);
-
-//     fu_object_unref(win);
-// }
 
 #endif

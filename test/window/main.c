@@ -43,7 +43,7 @@ static TApp* t_app_new()
 
 static bool app_close_callback(FUWindow* win, TApp* usd)
 {
-    // printf("%s\n", __func__);
+    printf("%s\n", __func__);
     fu_object_unref(win);
     return false;
 }
@@ -56,19 +56,19 @@ static bool app_resize_callback(FUWindow* win, const FUSize* size, TApp* usd)
     return true;
 }
 
-static bool app_scale_callback(FUWindow* win, const FUVec2* scale, TApp* usd)
-{
-    assert(win == usd->window);
-    sprintf(buff, "%s %f %f\n", __func__, scale->x, scale->y);
-    fu_file_write(usd->file, buff, strlen(buff));
-    return true;
-}
+// static bool app_scale_callback(FUWindow* win, const FUVec2* scale, TApp* usd)
+// {
+//     assert(win == usd->window);
+//     sprintf(buff, "%s %f %f\n", __func__, scale->x, scale->y);
+//     fu_file_write(usd->file, buff, strlen(buff));
+//     return true;
+// }
 
 static bool app_focus_callback(FUWindow* win, const bool* focus, TApp* usd)
 {
     assert(win == usd->window);
     sprintf(buff, "%s %s\n", __func__, *focus ? "true" : "false");
-    // printf("%s\n", buff);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
@@ -77,7 +77,7 @@ static bool app_key_down_callback(FUWindow* win, const FUKeyboardEvent* ev, TApp
 {
     assert(win == usd->window);
     sprintf(buff, "%s %s %d %d\n", __func__, ev->name, ev->key, ev->scanCode);
-    // printf("%s\n", buff);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
@@ -86,7 +86,7 @@ static bool app_key_up_callback(FUWindow* win, const FUKeyboardEvent* ev, TApp* 
 {
     assert(win == usd->window);
     sprintf(buff, "%s %s %d %d\n", __func__, ev->name, ev->key, ev->scanCode);
-    // printf("%s\n", buff);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
@@ -95,7 +95,7 @@ static bool app_key_press_callback(FUWindow* win, const FUKeyboardEvent* ev, TAp
 {
     assert(win == usd->window);
     sprintf(buff, "%s %s %d %d\n", __func__, ev->name, ev->key, ev->scanCode);
-    // printf("%s\n", buff);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
@@ -103,8 +103,8 @@ static bool app_key_press_callback(FUWindow* win, const FUKeyboardEvent* ev, TAp
 static bool app_mouse_move_callback(FUWindow* win, const FUMouseEvent* ev, TApp* usd)
 {
     assert(win == usd->window);
-    sprintf(buff, "%s pos: %f %f\n", __func__, ev->position.x, ev->position.y);
-    // printf("%s\n", buff);
+    sprintf(buff, "%s pos: %d %d\n", __func__, ev->position.x, ev->position.y);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
@@ -113,23 +113,23 @@ static bool app_mouse_up_callback(FUWindow* win, const FUMouseEvent* ev, TApp* u
 {
     assert(win == usd->window);
     sprintf(buff, "%s pos: %d %f %f\n", __func__, ev->button, ev->position.x, ev->position.y);
-    // printf("%s\n", buff);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
 static bool app_mouse_press_callback(FUWindow* win, const FUMouseEvent* ev, TApp* usd)
 {
     assert(win == usd->window);
-    sprintf(buff, "%s pos: %d %f %f\n", __func__, ev->button, ev->position.x, ev->position.y);
-    // printf("%s\n", buff);
+    sprintf(buff, "%s pos: %d %d %d\n", __func__, ev->button, ev->position.x, ev->position.y);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
 static bool app_mouse_down_callback(FUWindow* win, const FUMouseEvent* ev, TApp* usd)
 {
     assert(win == usd->window);
-    sprintf(buff, "%s pos: %d %f %f\n", __func__, ev->button, ev->position.x, ev->position.y);
-    // printf("%s\n", buff);
+    sprintf(buff, "%s pos: %d %d %d\n", __func__, ev->button, ev->position.x, ev->position.y);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
@@ -137,8 +137,8 @@ static bool app_mouse_down_callback(FUWindow* win, const FUMouseEvent* ev, TApp*
 static bool app_scroll_callback(FUWindow* win, const FUScrollEvent* ev, TApp* usd)
 {
     assert(win == usd->window);
-    sprintf(buff, "%s offset: %f %f detal: %f %f\n", __func__, ev->offset.x, ev->offset.y, ev->delta.x, ev->delta.y);
-    // printf("%s\n", buff);
+    sprintf(buff, "%s offset: %d %d detal: %d %d\n", __func__, ev->offset.x, ev->offset.y, ev->delta.x, ev->delta.y);
+    printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;
 }
@@ -165,42 +165,10 @@ static void app_active_callback(FUObject* obj, void* usd)
     FUWindowConfig* cfg = fu_window_config_new(NULL, 640, 320);
     app->window = fu_window_new((FUApp*)app, cfg);
 
-    // size_t len = 1600;
-    FUFile* file = fu_file_open_for_path("/home/warmsnow/下载/OmegaOptions.bak");
-    // FUArray* arr = fu_array_new(sizeof(char));
-    // FUTimer* timer = fu_timer_new();
-    // fu_timer_start(timer);
-    // sync read file
-    // void* rev = NULL;
-    // do {
-    //     rev = fu_file_read(file, &len);
-    //     if (!(rev && len))
-    //         break;
-    //     fu_array_append_vals(arr, rev, len);
-    //     fu_free(rev);
-    // } while (1000 <= len);
-    // FUBytes* rev = fu_file_read_all(file);
-    //
-    //  async read file
-    FUFileStream* stream = fu_file_stream_new_from_file(file);
-    fu_file_stream_read_async(stream, 1660, (FUAsyncReadyCallback)app_read_callback, app);
-    pthread_mutex_t mutex;
-    pthread_mutex_init(&mutex, NULL);
-    // len = fu_timer_measure(timer);
-    // // char* str = (char*)fu_array_free(arr, false);
-    // size_t size;
-    // char* str = (char*)fu_bytes_unref_to_data(rev, &size);
-    // fu_file_write(app->file, str, size);
-
-    // printf("size: %llu, finish: timer: %llu\n", size, len);
-    // fu_free(str);
-    // fu_object_unref(timer);
-    fu_object_unref(file);
-
     fu_signal_connect((FUObject*)app->window, "close", (FUSignalCallback0)app_close_callback, app);
     fu_signal_connect_with_param((FUObject*)app->window, "resize", (FUSignalCallback1)app_resize_callback, app);
     fu_signal_connect_with_param((FUObject*)app->window, "focus", (FUSignalCallback1)app_focus_callback, app);
-    fu_signal_connect_with_param((FUObject*)app->window, "scale", (FUSignalCallback1)app_scale_callback, app);
+    // fu_signal_connect_with_param((FUObject*)app->window, "scale", (FUSignalCallback1)app_scale_callback, app);
     fu_signal_connect_with_param((FUObject*)app->window, "key-down", (FUSignalCallback1)app_key_down_callback, app);
     fu_signal_connect_with_param((FUObject*)app->window, "key-up", (FUSignalCallback1)app_key_up_callback, app);
     fu_signal_connect_with_param((FUObject*)app->window, "key-press", (FUSignalCallback1)app_key_press_callback, app);

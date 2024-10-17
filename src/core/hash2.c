@@ -113,8 +113,6 @@ typedef struct _TIter {
     uint64_t idx;
 } TIter;
 
-static void _void(void* p) { }
-
 /**
  * @brief 创建新的哈希表
  * 可以指定用户数据释放函数，释放时调用
@@ -161,7 +159,7 @@ void fu_hash_table_unref(FUHashTable* table)
     if (1 < atomic_fetch_sub(&table->ref, 1))
         return;
     if (table->count) {
-        FUNotify fnFree = table->fnFree ? table->fnFree : _void;
+        FUNotify fnFree = !table->fnFree ? fu_void1 : table->fnFree;
         TBucket* bucket = NULL;
         for (size_t i = 0; i < defPows[table->mod]; i++) {
             bucket = table->buckets[i];
