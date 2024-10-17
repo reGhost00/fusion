@@ -134,7 +134,7 @@ static void t_vfs_async_cleanup(TVFSArgs* args)
     fu_clear_pointer((void**)&args->ovd, fu_free);
 }
 
-static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
+static bool t_vfs_async_init(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
 {
     args->ovd = fu_malloc0(sizeof(TOverlapped));
     args->ovd->args = args;
@@ -153,6 +153,14 @@ static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
         fu_free(args->ovd);
         return false;
     }
+
+    return true;
+}
+
+static bool t_vfs_read_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
+{
+    if (!t_vfs_async_init(args, cb, usd))
+        return false;
 
     io_uring_prep_read(args->ovd->sqe, args->hwnd, args->buffRead, args->size, args->offset);
     io_uring_sqe_set_data(args->ovd->sqe, args->ovd);
@@ -187,6 +195,29 @@ static bool t_vfs_write(TVFSArgs* args)
         return false;
     }
     args->size = bytes;
+    return true;
+}
+
+static bool t_vfs_write_async(TVFSArgs* args, TVFSAsyncCallback cb, void* usd)
+{
+    if (!t_vfs_async_init(args, cb, usd))
+        return false;
+
+    if (0 > lseek(args->hwnd, 0, SEEK_END)) {
+        perror("lseek");
+        io_uring_queue_exit(&args->ovd->ring);
+        fu_free(args->ovd);
+        return false;
+    }
+
+    io_uring_prep_write(args->ovd->sqe, args->hwnd, args->buffWrite, args->size, -1);
+    io_uring_sqe_set_data(args->ovd->sqe, args->ovd);
+    if (0 > io_uring_submit(&args->ovd->ring)) {
+        perror("io_uring_submit");
+        io_uring_queue_exit(&args->ovd->ring);
+        fu_free(args->ovd);
+        return false;
+    }
     return true;
 }
 #endif // FU_OS_LINUX

@@ -112,7 +112,7 @@ static bool app_mouse_move_callback(FUWindow* win, const FUMouseEvent* ev, TApp*
 static bool app_mouse_up_callback(FUWindow* win, const FUMouseEvent* ev, TApp* usd)
 {
     assert(win == usd->window);
-    sprintf(buff, "%s pos: %d %f %f\n", __func__, ev->button, ev->position.x, ev->position.y);
+    sprintf(buff, "%s pos: %d %d %d\n", __func__, ev->button, ev->position.x, ev->position.y);
     printf("%s\n", buff);
     fu_file_write(usd->file, buff, strlen(buff));
     return true;

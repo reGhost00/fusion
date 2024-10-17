@@ -4,7 +4,7 @@
 
 #ifdef FU_OS_WINDOW
 #include <windows.h>
-#define callback_env_t TP_CALLBACK_ENVIRON
+// #define callback_env_t TP_CALLBACK_ENVIRON
 typedef HANDLE FUMutex;
 
 #define fu_mutex_init(m) ((void)(m = CreateMutex(NULL, FALSE, NULL)))
@@ -22,7 +22,7 @@ typedef pthread_mutex_t FUMutex;
 
 typedef struct _FUAsyncResult FUAsyncResult;
 typedef void (*FUAsyncReadyCallback)(FUObject* obj, FUAsyncResult* res, void* usd);
-
+#ifdef _enable_thread
 FU_DECLARE_TYPE(FUThread, fu_thread)
 #define FU_TYPE_THREAD (fu_thread_get_type())
 typedef void (*FUThreadFunc)(FUThread* thread, void* usd);
@@ -54,4 +54,5 @@ void fu_thread_pool_wait(FUThreadPool* pool);
 // void* fu_task_run_finish(FUAsyncResult* res, char** msg);
 #ifdef FU_OS_WINDOW
 callback_env_t* fu_thread_pool_get_callback_env(FUThreadPool* pool);
+#endif
 #endif

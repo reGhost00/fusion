@@ -42,6 +42,15 @@ static void* fu_track_memory(void* p, size_t size)
 #ifdef FU_OS_WINDOW
     if (FU_UNLIKELY(!defMemoryTableMutex))
         fu_mutex_init(defMemoryTableMutex);
+#else
+    if (FU_UNLIKELY(!isMutexInit)) {
+        isMutexInit = true;
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+        pthread_mutex_init(&defMemoryTableMutex, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
 #endif
     fu_mutex_lock(defMemoryTableMutex);
     if (!atomic_fetch_add_explicit(&defMemoryTableCount, 1, memory_order_relaxed) && !ifMemoryTableInit) {
@@ -78,16 +87,6 @@ void* fu_realloc(void* p, size_t size)
 {
     if (FU_UNLIKELY(!p))
         return fu_malloc(size);
-#ifdef FU_OS_LINUX
-    if (FU_UNLIKELY(!isMutexInit)) {
-        isMutexInit = true;
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-        pthread_mutex_init(defMemoryTableMutex, &attr);
-        pthread_mutexattr_destroy(&attr);
-    }
-#endif
     fu_mutex_lock(defMemoryTableMutex);
     atomic_fetch_sub_explicit(&defMemoryTableCount, 1, memory_order_relaxed);
     sc_map_del_64(&defMemoryTable, (uintptr_t)p);
@@ -112,6 +111,8 @@ void fu_free(void* p)
 #else // FU_NO_TRACK_MEMORY
 #define fu_track_memory(p, size) (p)
 #endif // FU_NO_TRACK_MEMORY
+
+#ifdef FU_OS_WINDOW
 #ifndef FU_NO_DEBUG
 void fu_winapi_print_error_from_code(const char* prefix, const DWORD code)
 {
@@ -127,7 +128,7 @@ void fu_winapi_print_error_from_code(const char* prefix, const DWORD code)
 }
 
 #endif
-#ifdef FU_OS_WINDOW
+
 char* fu_wchar_to_utf8(const wchar_t* wstr, size_t* len)
 {
     if (!(*len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL)))
@@ -145,6 +146,14 @@ wchar_t* fu_utf8_to_wchar(const char* str, size_t* len)
     MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, *len);
     return wstr;
 }
+#else
+#ifndef FU_NO_DEBUG
+
+void fu_winapi_print_error_from_code(const char* prefix, const int code)
+{
+    fprintf(stderr, "%s %s\n", prefix, strerror(code));
+}
+#endif
 #endif
 
 /**

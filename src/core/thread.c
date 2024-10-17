@@ -1,3 +1,4 @@
+#ifdef _use_thread
 #include <stdatomic.h>
 
 #include "main.h"
@@ -222,7 +223,7 @@ FUThreadPool* fu_thread_pool_get_default()
 //     // thread->pool = defThreadPool;
 //     thread->usd = task;
 // }
-
+#endif
 #endif
 /**
 static bool fu_task_source_prepare(FUSource* self, void* usd)

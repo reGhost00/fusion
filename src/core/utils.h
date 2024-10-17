@@ -230,11 +230,11 @@ void fu_winapi_print_error_from_code(const char* prefix, const DWORD code);
 #define fu_utf8_to_wchar(str, len) (str)
 #ifndef FU_NO_DEBUG
 
-void fu_winapi_print_error_from_code(const char* prefix, const DWORD code);
+void fu_winapi_print_error_from_code(const char* prefix, const int code);
 
-#define fu_winapi_print_error(prefix)                    \
-    do {                                                 \
-        fu_winapi_print_error_with_code((prefix), errno) \
+#define fu_winapi_print_error(prefix)                     \
+    do {                                                  \
+        fu_winapi_print_error_from_code((prefix), errno); \
     } while (0)
 
 #define fu_winapi_return_if_fail(expr)       \

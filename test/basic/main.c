@@ -46,7 +46,7 @@ static bool app_tm1_callback(TApp* usd)
 {
     static int i = 0;
     unsigned diff = fu_timer_measure(usd->timer);
-    char* str = fu_get_current_time_UTC();
+    char* str = fu_get_current_time_utc();
     int rav = fu_rand_int_range(usd->rand, 0, 30);
     printf("%s %d, %d\n", str, diff, rav);
     fu_free(str);
