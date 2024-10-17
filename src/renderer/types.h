@@ -31,6 +31,10 @@ typedef struct _FUPoint3 {
     uint32_t x, y, z;
 } FUPoint3;
 
+typedef struct _FUOffset2 {
+    int x, y;
+} FUOffset2;
+
 typedef struct _FURGB {
     uint8_t r, g, b;
 } FURGB;

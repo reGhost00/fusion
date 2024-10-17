@@ -41,6 +41,8 @@ char* fu_strdup(const char* src);
 char* fu_strndup(const char* str, size_t n);
 char* fu_strnfill(size_t length, char ch);
 char* fu_strdup_printf(const char* format, ...);
+static inline void fu_void0() { }
+static inline void fu_void1(void* p) { }
 
 #define fu_max(a, b) (((a) ^ ((a) ^ (b))) & -(a < b))
 #define fu_min(a, b) (((b) ^ ((b) ^ (a))) & -(b < a))
@@ -113,6 +115,29 @@ void fu_free(void* p);
         }                                                        \
     } while (0)
 
+#define fu_abort_if_true(expr, cb) \
+    do {                           \
+        if (FU_UNLIKELY(expr)) {   \
+            cb();                  \
+            abort();               \
+        }                          \
+    } while (0)
+
+#define fu_return_if_true(expr, cb) \
+    do {                            \
+        if (FU_UNLIKELY(expr)) {    \
+            cb();                   \
+            return;                 \
+        }                           \
+    } while (0)
+
+#define fu_return_val_if_true(expr, cb, val) \
+    do {                                     \
+        if (FU_UNLIKELY(expr)) {             \
+            cb();                            \
+            return val;                      \
+        }                                    \
+    } while (0)
 #else
 #define fu_return_if_fail(expr) ((void)(expr))
 
@@ -131,6 +156,22 @@ void fu_free(void* p);
     } while (0)
 
 #define fu_goto_if_fail(expr, tar) ((void)(expr))
+
+#define fu_abort_if_true(expr, cb) \
+    do {                           \
+        if (FU_UNLIKELY(expr))     \
+            abort();               \
+    } while (0)
+#define fu_return_if_true(expr, cb) \
+    do {                            \
+        if (FU_UNLIKELY(expr))      \
+            return;                 \
+    } while (0)
+#define fu_return_val_if_true(expr, cb, val) \
+    do {                                     \
+        if (FU_UNLIKELY(expr))               \
+            return val;                      \
+    } while (0)
 #endif // FU_NO_DEBUG
 
 #ifdef FU_OS_WINDOW

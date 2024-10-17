@@ -15,6 +15,10 @@
 #include "renderer/gl2.h"
 #include "renderer/types.h"
 
+#ifdef FU_USE_SDL
+#include "platform/sdl.h"
+#else
 #include "platform/glfw.h"
+#endif
 
 #endif /* __G_CONVERT_H__ */
