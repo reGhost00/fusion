@@ -14,7 +14,9 @@
 #include <windows.h>
 // custom
 #include "../core/file.h"
-#include "../core/utils.h"
+#include "../core/memory.h"
+#include "../core/misc.h"
+#include "misc.window.inner.h"
 
 typedef HANDLE TVFSHwnd;
 typedef DWORD TVFSErrorCode;
@@ -101,7 +103,7 @@ static bool t_vfs_open(TVFSArgs* args)
     if (INVALID_HANDLE_VALUE != (args->hwnd = CreateFileW(args->path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL, flags, mode, NULL)))
         return true;
     args->lastError = GetLastError();
-    fu_winapi_print_error_from_code(__func__, args->lastError);
+    fu_os_print_error_from_code(__func__, args->lastError);
     return false;
 }
 
@@ -114,7 +116,7 @@ static void t_vfs_close(TVFSArgs* args)
 static bool t_vfs_read(TVFSArgs* args)
 {
     DWORD bytesRead = 0;
-    fu_winapi_return_val_if_fail(ReadFile(args->hwnd, args->buffRead, args->size, &bytesRead, NULL), false);
+    fu_os_return_val_if_fail(ReadFile(args->hwnd, args->buffRead, args->size, &bytesRead, NULL), false);
     args->size = bytesRead;
     return bytesRead;
 }
@@ -122,7 +124,7 @@ static bool t_vfs_read(TVFSArgs* args)
 static bool t_vfs_write(TVFSArgs* args)
 {
     DWORD bytesWritten = 0;
-    fu_winapi_return_val_if_fail(WriteFile(args->hwnd, args->buffWrite, args->size, &bytesWritten, NULL), false);
+    fu_os_return_val_if_fail(WriteFile(args->hwnd, args->buffWrite, args->size, &bytesWritten, NULL), false);
     args->size = bytesWritten;
     return bytesWritten;
 }
@@ -166,7 +168,7 @@ static bool t_vfs_async_check(TVFSArgs* args)
     // return WAIT_OBJECT_0 == WaitForSingleObjectEx(args->ovd->overlapped.hEvent, 10, true);
     DWORD rev = WaitForSingleObjectEx(args->ovd->overlapped.hEvent, 0, true);
     if (FU_UNLIKELY(WAIT_FAILED == rev)) {
-        fu_winapi_print_error(__func__);
+        fu_os_print_error(__func__);
         return true;
     }
     return !rev;

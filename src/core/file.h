@@ -5,8 +5,8 @@
 
 #include "array.h"
 #include "object.h"
-#include "thread.h"
-#include "utils.h"
+// #include "thread.h"
+#include "misc.h"
 
 typedef enum _EFUFileType {
     EFU_FILE_TYPE_NOT_EXIST,

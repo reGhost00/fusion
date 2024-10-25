@@ -1,15 +1,18 @@
 #ifdef FU_USE_SDL
 #include <stdio.h>
-// libs
-#include "glad/gl.h"
 // custom header
-#include "../core/main_inner.h"
-#include "../core/utils.h"
-#include "../renderer/gl2.h"
-#include "sdl_inner.h"
+#include "core/main.inner.h"
+#include "core/memory.h"
+#include "platform/misc.linux.inner.h"
+#include "platform/misc.window.inner.h"
+#include "renderer/backend2.h"
+#include "sdl.inner.h"
 
-#define DEF_KEYPRESS_MAX_DUR 200
+#define DEF_KEYPRESS_MAX_DUR 2000
 #define DEF_OFFSET_MAX_DUR 500
+#define DEF_ARRAY_LEN 5
+#define DEF_CONTEXT_CNT DEF_ARRAY_LEN
+#define DEF_USER_SOURCE_CNT DEF_ARRAY_LEN
 
 typedef enum _EWindowSignal {
     E_WINDOW_SIGNAL_CLOSE,
@@ -64,45 +67,34 @@ static void t_window_event_free(TWindowEvent* evt)
     fu_free(evt);
 }
 
-static inline void t_sdl_print_error()
+static inline void t_sdl_print_error(void* _)
 {
     fprintf(stderr, "SDL Error: %s\n", SDL_GetError());
 }
 
-static FUWindow* t_sdl_new_window(FUWindowConfig* cfg, FUWindow* parent)
+static SDL_Window* t_sdl_new_window(FUWindowConfig* cfg)
 {
-    fu_abort_if_true(0 > SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO), t_sdl_print_error);
+    fu_abort_if_true(0 > SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO), t_sdl_print_error, NULL);
     uint32_t flags = SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI;
     if (cfg->fullscreen)
         flags |= SDL_WINDOW_FULLSCREEN;
     else if (cfg->resizable)
         flags |= SDL_WINDOW_RESIZABLE;
 
-#ifdef FU_RENDERER_TYPE_VK
-    flags |= SDL_WINDOW_VULKAN;
-#else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     flags |= SDL_WINDOW_OPENGL;
 
-    parent->window = SDL_CreateWindow(cfg->title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, cfg->width, cfg->height, flags);
-    fu_abort_if_true(!parent->window, t_sdl_print_error);
+    SDL_Window* win = SDL_CreateWindow(cfg->title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, cfg->size.width, cfg->size.height, flags);
+    fu_abort_if_true(!win, t_sdl_print_error, NULL);
 
-    parent->ctx = SDL_GL_CreateContext(parent->window);
-    fu_abort_if_true(!parent->ctx, t_sdl_print_error);
+    if (cfg->minSize.width && cfg->minSize.height)
+        SDL_SetWindowMinimumSize(win, cfg->minSize.width, cfg->minSize.height);
+    if (cfg->maxSize.width && cfg->maxSize.height)
+        SDL_SetWindowMaximumSize(win, cfg->maxSize.width, cfg->maxSize.height);
 
-    SDL_GL_SetSwapInterval(1);
-    int ver = gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
-    fprintf(stdout, "[FUSION][SDL] OpenGL %d.%d\n", GLAD_VERSION_MAJOR(ver), GLAD_VERSION_MINOR(ver));
-#endif
-
-    if (cfg->minWidth && cfg->minHeight)
-        SDL_SetWindowMinimumSize(parent->window, cfg->minWidth, cfg->minHeight);
-    if (cfg->maxWidth && cfg->maxHeight)
-        SDL_SetWindowMaximumSize(parent->window, cfg->maxWidth, cfg->maxHeight);
-
-    return parent;
+    return win;
 }
 //
 // SDL Event Wrap
@@ -244,31 +236,20 @@ static void fu_window_finalize(FUObject* obj)
     printf("%s\n", __func__);
     FUWindow* win = (FUWindow*)obj;
     TApp* app = (TApp*)win->app;
-    // 例外：FUWindow 是链表
-    if (win->next)
-        win->next->prev = win->prev;
-    if (win->prev)
-        win->prev->next = win->next;
-    SDL_GL_DeleteContext(win->ctx);
+    // // 例外：FUWindow 是链表
+    // if (win->next)
+    //     win->next->prev = win->prev;
+    // if (win->prev)
+    //     win->prev->next = win->next;
+    // SDL_GL_DeleteContext(win->ctx);
     SDL_DestroyWindow(win->window);
-
+    fu_ptr_array_unref(win->sources);
+    fu_ptr_array_unref(win->contexts);
     fu_ptr_array_unref(win->sources);
     t_window_event_free(win->event);
     fu_object_unref(app);
     if (1 >= atomic_fetch_sub_explicit(&defWindowCount, 1, memory_order_relaxed))
         SDL_Quit();
-}
-
-static void fu_window_dispose(FUObject* obj)
-{
-    printf("%s\n", __func__);
-    FUWindow* win = (FUWindow*)obj;
-    FUWindow* child = win->child;
-    while (child) {
-        win = child->next;
-        fu_object_unref(child);
-        child = win;
-    }
 }
 
 static void fu_window_class_init(FUObjectClass* oc)
@@ -284,7 +265,6 @@ static void fu_window_class_init(FUObjectClass* oc)
     defWindowSignals[E_WINDOW_SIGNAL_MOUSE_UP] = fu_signal_new("mouse-up", oc, true);
     defWindowSignals[E_WINDOW_SIGNAL_MOUSE_PRESS] = fu_signal_new("mouse-press", oc, true);
     defWindowSignals[E_WINDOW_SIGNAL_SCROLL] = fu_signal_new("scroll", oc, true);
-    oc->dispose = fu_window_dispose;
     oc->finalize = fu_window_finalize;
 }
 
@@ -310,10 +290,14 @@ FUWindow* fu_window_new(FUApp* app, FUWindowConfig* cfg)
 
     fu_return_val_if_fail(app && cfg, NULL);
 
-    FUWindow* win = t_sdl_new_window(cfg, (FUWindow*)fu_object_new(FU_TYPE_WINDOW));
+    FUWindow* win = (FUWindow*)fu_object_new(FU_TYPE_WINDOW);
     TApp* _app = (TApp*)(win->app = fu_object_ref(app));
+    win->window = t_sdl_new_window(cfg);
     win->event = t_window_event_new();
     win->sources = fu_ptr_array_new_full(3, (FUNotify)fu_source_destroy);
+    win->contexts = fu_ptr_array_new_full(DEF_CONTEXT_CNT, NULL);
+    win->sources = fu_ptr_array_new_full(DEF_USER_SOURCE_CNT, (FUNotify)fu_source_destroy);
+    t_surface_init(win);
 
     if (0 < atomic_fetch_add_explicit(&defWindowCount, 1, memory_order_relaxed))
         return win;

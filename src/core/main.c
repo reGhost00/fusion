@@ -1,19 +1,9 @@
 #include <stdatomic.h>
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#ifdef FU_RENDERER_TYPE_GL
-#define GLAD_GL_IMPLEMENTATION // Necessary for headeronly version.
-#include <glad/gl.h>
-#elif FU_RENDERER_TYPE_VK
-#define GLAD_VULKAN_IMPLEMENTATION // Necessary for headeronly version.
-#include <glad/vulkan.h>
-#endif
-#include "main_inner.h"
-#define _FU_CORE_MAIN_ENABLE_
-#include "../_inner.h"
+// custom
 #include "array.h"
-
-#include "utils.h"
+#include "main.inner.h"
+#include "memory.h"
+#include "misc.h"
 
 // 事件源 id
 // 每个事件源都有唯一的 id
@@ -221,8 +211,7 @@ void fu_main_loop_run(FUMainLoop* loop)
         fu_main_loop_cleanup,
         NULL
     };
-    fu_return_if_fail(atomic_load_explicit(&loop->cnt, memory_order_relaxed) && !loop->active);
-    // fu_return_if_fail(loop->cnt && !loop->active);
+    fu_return_if_fail_with_message(atomic_load_explicit(&loop->cnt, memory_order_relaxed) && !loop->active, "No event source in main loop");
     loop->active = true;
     do {
         if (fns[loop->state])

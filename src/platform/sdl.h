@@ -1,7 +1,7 @@
 #ifdef FU_USE_SDL
 #pragma once
-#include "../core/main.h"
-
+#include "core/main.h"
+#include "misc.h"
 typedef enum _EFUKeyboardKey {
     EFU_KB_KEY_NONE = 0,
     EFU_KB_KEY_SPACE = 32,

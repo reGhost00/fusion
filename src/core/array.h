@@ -27,9 +27,8 @@
 #define __G_ARRAY_H__
 
 #include <stdint.h>
-#include <stdio.h>
-
-#include "types.h"
+// custom
+#include "misc.h"
 
 typedef struct _FUBytes FUBytes;
 typedef struct _FUArray {
@@ -64,7 +63,7 @@ const void* fu_bytes_get_region(FUBytes* bytes, size_t elementSize, size_t offse
  * array, while preserving the order. remove_fast will distort the
  * order by moving the last element to the position of the removed.
  */
-
+// todo: add fu_array_concat()
 #define fu_array_append_val(a, v) fu_array_append_vals(a, &(v), 1)
 #define fu_array_prepend_val(a, v) fu_array_prepend_vals(a, &(v), 1)
 #define fu_array_insert_val(a, i, v) fu_array_insert_vals(a, i, &(v), 1)

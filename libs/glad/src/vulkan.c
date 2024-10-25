@@ -88,6 +88,7 @@ int GLAD_VK_EXT_debug_marker = 0;
 int GLAD_VK_EXT_debug_report = 0;
 int GLAD_VK_EXT_debug_utils = 0;
 int GLAD_VK_EXT_depth_bias_control = 0;
+int GLAD_VK_EXT_depth_clamp_control = 0;
 int GLAD_VK_EXT_depth_clamp_zero_one = 0;
 int GLAD_VK_EXT_depth_clip_control = 0;
 int GLAD_VK_EXT_depth_clip_enable = 0;
@@ -96,6 +97,7 @@ int GLAD_VK_EXT_descriptor_buffer = 0;
 int GLAD_VK_EXT_descriptor_indexing = 0;
 int GLAD_VK_EXT_device_address_binding_report = 0;
 int GLAD_VK_EXT_device_fault = 0;
+int GLAD_VK_EXT_device_generated_commands = 0;
 int GLAD_VK_EXT_device_memory_report = 0;
 int GLAD_VK_EXT_direct_mode_display = 0;
 #if defined(VK_USE_PLATFORM_DIRECTFB_EXT)
@@ -170,6 +172,7 @@ int GLAD_VK_EXT_pipeline_properties = 0;
 int GLAD_VK_EXT_pipeline_protected_access = 0;
 int GLAD_VK_EXT_pipeline_robustness = 0;
 int GLAD_VK_EXT_post_depth_coverage = 0;
+int GLAD_VK_EXT_present_mode_fifo_latest_ready = 0;
 int GLAD_VK_EXT_primitive_topology_list_restart = 0;
 int GLAD_VK_EXT_primitives_generated_query = 0;
 int GLAD_VK_EXT_private_data = 0;
@@ -659,6 +662,7 @@ PFN_vkCmdEndRenderingKHR glad_vkCmdEndRenderingKHR = NULL;
 PFN_vkCmdEndTransformFeedbackEXT glad_vkCmdEndTransformFeedbackEXT = NULL;
 PFN_vkCmdEndVideoCodingKHR glad_vkCmdEndVideoCodingKHR = NULL;
 PFN_vkCmdExecuteCommands glad_vkCmdExecuteCommands = NULL;
+PFN_vkCmdExecuteGeneratedCommandsEXT glad_vkCmdExecuteGeneratedCommandsEXT = NULL;
 PFN_vkCmdExecuteGeneratedCommandsNV glad_vkCmdExecuteGeneratedCommandsNV = NULL;
 PFN_vkCmdFillBuffer glad_vkCmdFillBuffer = NULL;
 #if defined(VK_ENABLE_BETA_EXTENSIONS)
@@ -673,6 +677,7 @@ PFN_vkCmdOpticalFlowExecuteNV glad_vkCmdOpticalFlowExecuteNV = NULL;
 PFN_vkCmdPipelineBarrier glad_vkCmdPipelineBarrier = NULL;
 PFN_vkCmdPipelineBarrier2 glad_vkCmdPipelineBarrier2 = NULL;
 PFN_vkCmdPipelineBarrier2KHR glad_vkCmdPipelineBarrier2KHR = NULL;
+PFN_vkCmdPreprocessGeneratedCommandsEXT glad_vkCmdPreprocessGeneratedCommandsEXT = NULL;
 PFN_vkCmdPreprocessGeneratedCommandsNV glad_vkCmdPreprocessGeneratedCommandsNV = NULL;
 PFN_vkCmdPushConstants glad_vkCmdPushConstants = NULL;
 PFN_vkCmdPushConstants2KHR glad_vkCmdPushConstants2KHR = NULL;
@@ -715,6 +720,7 @@ PFN_vkCmdSetDepthBounds glad_vkCmdSetDepthBounds = NULL;
 PFN_vkCmdSetDepthBoundsTestEnable glad_vkCmdSetDepthBoundsTestEnable = NULL;
 PFN_vkCmdSetDepthBoundsTestEnableEXT glad_vkCmdSetDepthBoundsTestEnableEXT = NULL;
 PFN_vkCmdSetDepthClampEnableEXT glad_vkCmdSetDepthClampEnableEXT = NULL;
+PFN_vkCmdSetDepthClampRangeEXT glad_vkCmdSetDepthClampRangeEXT = NULL;
 PFN_vkCmdSetDepthClipEnableEXT glad_vkCmdSetDepthClipEnableEXT = NULL;
 PFN_vkCmdSetDepthClipNegativeOneToOneEXT glad_vkCmdSetDepthClipNegativeOneToOneEXT = NULL;
 PFN_vkCmdSetDepthCompareOp glad_vkCmdSetDepthCompareOp = NULL;
@@ -867,7 +873,9 @@ PFN_vkCreateImagePipeSurfaceFUCHSIA glad_vkCreateImagePipeSurfaceFUCHSIA = NULL;
 
 #endif
 PFN_vkCreateImageView glad_vkCreateImageView = NULL;
+PFN_vkCreateIndirectCommandsLayoutEXT glad_vkCreateIndirectCommandsLayoutEXT = NULL;
 PFN_vkCreateIndirectCommandsLayoutNV glad_vkCreateIndirectCommandsLayoutNV = NULL;
+PFN_vkCreateIndirectExecutionSetEXT glad_vkCreateIndirectExecutionSetEXT = NULL;
 PFN_vkCreateInstance glad_vkCreateInstance = NULL;
 #if defined(VK_USE_PLATFORM_MACOS_MVK)
 PFN_vkCreateMacOSSurfaceMVK glad_vkCreateMacOSSurfaceMVK = NULL;
@@ -959,7 +967,9 @@ PFN_vkDestroyFence glad_vkDestroyFence = NULL;
 PFN_vkDestroyFramebuffer glad_vkDestroyFramebuffer = NULL;
 PFN_vkDestroyImage glad_vkDestroyImage = NULL;
 PFN_vkDestroyImageView glad_vkDestroyImageView = NULL;
+PFN_vkDestroyIndirectCommandsLayoutEXT glad_vkDestroyIndirectCommandsLayoutEXT = NULL;
 PFN_vkDestroyIndirectCommandsLayoutNV glad_vkDestroyIndirectCommandsLayoutNV = NULL;
+PFN_vkDestroyIndirectExecutionSetEXT glad_vkDestroyIndirectExecutionSetEXT = NULL;
 PFN_vkDestroyInstance glad_vkDestroyInstance = NULL;
 PFN_vkDestroyMicromapEXT glad_vkDestroyMicromapEXT = NULL;
 PFN_vkDestroyOpticalFlowSessionNV glad_vkDestroyOpticalFlowSessionNV = NULL;
@@ -1085,6 +1095,7 @@ PFN_vkGetFenceWin32HandleKHR glad_vkGetFenceWin32HandleKHR = NULL;
 
 #endif
 PFN_vkGetFramebufferTilePropertiesQCOM glad_vkGetFramebufferTilePropertiesQCOM = NULL;
+PFN_vkGetGeneratedCommandsMemoryRequirementsEXT glad_vkGetGeneratedCommandsMemoryRequirementsEXT = NULL;
 PFN_vkGetGeneratedCommandsMemoryRequirementsNV glad_vkGetGeneratedCommandsMemoryRequirementsNV = NULL;
 PFN_vkGetImageDrmFormatModifierPropertiesEXT glad_vkGetImageDrmFormatModifierPropertiesEXT = NULL;
 PFN_vkGetImageMemoryRequirements glad_vkGetImageMemoryRequirements = NULL;
@@ -1349,6 +1360,8 @@ PFN_vkUnmapMemory2KHR glad_vkUnmapMemory2KHR = NULL;
 PFN_vkUpdateDescriptorSetWithTemplate glad_vkUpdateDescriptorSetWithTemplate = NULL;
 PFN_vkUpdateDescriptorSetWithTemplateKHR glad_vkUpdateDescriptorSetWithTemplateKHR = NULL;
 PFN_vkUpdateDescriptorSets glad_vkUpdateDescriptorSets = NULL;
+PFN_vkUpdateIndirectExecutionSetPipelineEXT glad_vkUpdateIndirectExecutionSetPipelineEXT = NULL;
+PFN_vkUpdateIndirectExecutionSetShaderEXT glad_vkUpdateIndirectExecutionSetShaderEXT = NULL;
 PFN_vkUpdateVideoSessionParametersKHR glad_vkUpdateVideoSessionParametersKHR = NULL;
 PFN_vkWaitForFences glad_vkWaitForFences = NULL;
 PFN_vkWaitForPresentKHR glad_vkWaitForPresentKHR = NULL;
@@ -1604,6 +1617,7 @@ static void glad_vk_load_VK_AMD_anti_lag( GLADuserptrloadfunc load, void* userpt
 }
 static void glad_vk_load_VK_AMD_buffer_marker( GLADuserptrloadfunc load, void* userptr) {
     if(!GLAD_VK_AMD_buffer_marker) return;
+    glad_vkCmdWriteBufferMarker2AMD = (PFN_vkCmdWriteBufferMarker2AMD) load(userptr, "vkCmdWriteBufferMarker2AMD");
     glad_vkCmdWriteBufferMarkerAMD = (PFN_vkCmdWriteBufferMarkerAMD) load(userptr, "vkCmdWriteBufferMarkerAMD");
 }
 static void glad_vk_load_VK_AMD_display_native_hdr( GLADuserptrloadfunc load, void* userptr) {
@@ -1694,6 +1708,10 @@ static void glad_vk_load_VK_EXT_depth_bias_control( GLADuserptrloadfunc load, vo
     if(!GLAD_VK_EXT_depth_bias_control) return;
     glad_vkCmdSetDepthBias2EXT = (PFN_vkCmdSetDepthBias2EXT) load(userptr, "vkCmdSetDepthBias2EXT");
 }
+static void glad_vk_load_VK_EXT_depth_clamp_control( GLADuserptrloadfunc load, void* userptr) {
+    if(!GLAD_VK_EXT_depth_clamp_control) return;
+    glad_vkCmdSetDepthClampRangeEXT = (PFN_vkCmdSetDepthClampRangeEXT) load(userptr, "vkCmdSetDepthClampRangeEXT");
+}
 static void glad_vk_load_VK_EXT_descriptor_buffer( GLADuserptrloadfunc load, void* userptr) {
     if(!GLAD_VK_EXT_descriptor_buffer) return;
     glad_vkCmdBindDescriptorBufferEmbeddedSamplersEXT = (PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT) load(userptr, "vkCmdBindDescriptorBufferEmbeddedSamplersEXT");
@@ -1711,6 +1729,18 @@ static void glad_vk_load_VK_EXT_descriptor_buffer( GLADuserptrloadfunc load, voi
 static void glad_vk_load_VK_EXT_device_fault( GLADuserptrloadfunc load, void* userptr) {
     if(!GLAD_VK_EXT_device_fault) return;
     glad_vkGetDeviceFaultInfoEXT = (PFN_vkGetDeviceFaultInfoEXT) load(userptr, "vkGetDeviceFaultInfoEXT");
+}
+static void glad_vk_load_VK_EXT_device_generated_commands( GLADuserptrloadfunc load, void* userptr) {
+    if(!GLAD_VK_EXT_device_generated_commands) return;
+    glad_vkCmdExecuteGeneratedCommandsEXT = (PFN_vkCmdExecuteGeneratedCommandsEXT) load(userptr, "vkCmdExecuteGeneratedCommandsEXT");
+    glad_vkCmdPreprocessGeneratedCommandsEXT = (PFN_vkCmdPreprocessGeneratedCommandsEXT) load(userptr, "vkCmdPreprocessGeneratedCommandsEXT");
+    glad_vkCreateIndirectCommandsLayoutEXT = (PFN_vkCreateIndirectCommandsLayoutEXT) load(userptr, "vkCreateIndirectCommandsLayoutEXT");
+    glad_vkCreateIndirectExecutionSetEXT = (PFN_vkCreateIndirectExecutionSetEXT) load(userptr, "vkCreateIndirectExecutionSetEXT");
+    glad_vkDestroyIndirectCommandsLayoutEXT = (PFN_vkDestroyIndirectCommandsLayoutEXT) load(userptr, "vkDestroyIndirectCommandsLayoutEXT");
+    glad_vkDestroyIndirectExecutionSetEXT = (PFN_vkDestroyIndirectExecutionSetEXT) load(userptr, "vkDestroyIndirectExecutionSetEXT");
+    glad_vkGetGeneratedCommandsMemoryRequirementsEXT = (PFN_vkGetGeneratedCommandsMemoryRequirementsEXT) load(userptr, "vkGetGeneratedCommandsMemoryRequirementsEXT");
+    glad_vkUpdateIndirectExecutionSetPipelineEXT = (PFN_vkUpdateIndirectExecutionSetPipelineEXT) load(userptr, "vkUpdateIndirectExecutionSetPipelineEXT");
+    glad_vkUpdateIndirectExecutionSetShaderEXT = (PFN_vkUpdateIndirectExecutionSetShaderEXT) load(userptr, "vkUpdateIndirectExecutionSetShaderEXT");
 }
 static void glad_vk_load_VK_EXT_direct_mode_display( GLADuserptrloadfunc load, void* userptr) {
     if(!GLAD_VK_EXT_direct_mode_display) return;
@@ -1932,6 +1962,7 @@ static void glad_vk_load_VK_EXT_shader_object( GLADuserptrloadfunc load, void* u
     glad_vkCmdSetDepthBiasEnableEXT = (PFN_vkCmdSetDepthBiasEnableEXT) load(userptr, "vkCmdSetDepthBiasEnableEXT");
     glad_vkCmdSetDepthBoundsTestEnableEXT = (PFN_vkCmdSetDepthBoundsTestEnableEXT) load(userptr, "vkCmdSetDepthBoundsTestEnableEXT");
     glad_vkCmdSetDepthClampEnableEXT = (PFN_vkCmdSetDepthClampEnableEXT) load(userptr, "vkCmdSetDepthClampEnableEXT");
+    glad_vkCmdSetDepthClampRangeEXT = (PFN_vkCmdSetDepthClampRangeEXT) load(userptr, "vkCmdSetDepthClampRangeEXT");
     glad_vkCmdSetDepthClipEnableEXT = (PFN_vkCmdSetDepthClipEnableEXT) load(userptr, "vkCmdSetDepthClipEnableEXT");
     glad_vkCmdSetDepthClipNegativeOneToOneEXT = (PFN_vkCmdSetDepthClipNegativeOneToOneEXT) load(userptr, "vkCmdSetDepthClipNegativeOneToOneEXT");
     glad_vkCmdSetDepthCompareOpEXT = (PFN_vkCmdSetDepthCompareOpEXT) load(userptr, "vkCmdSetDepthCompareOpEXT");
@@ -2389,9 +2420,7 @@ static void glad_vk_load_VK_KHR_synchronization2( GLADuserptrloadfunc load, void
     glad_vkCmdResetEvent2KHR = (PFN_vkCmdResetEvent2KHR) load(userptr, "vkCmdResetEvent2KHR");
     glad_vkCmdSetEvent2KHR = (PFN_vkCmdSetEvent2KHR) load(userptr, "vkCmdSetEvent2KHR");
     glad_vkCmdWaitEvents2KHR = (PFN_vkCmdWaitEvents2KHR) load(userptr, "vkCmdWaitEvents2KHR");
-    glad_vkCmdWriteBufferMarker2AMD = (PFN_vkCmdWriteBufferMarker2AMD) load(userptr, "vkCmdWriteBufferMarker2AMD");
     glad_vkCmdWriteTimestamp2KHR = (PFN_vkCmdWriteTimestamp2KHR) load(userptr, "vkCmdWriteTimestamp2KHR");
-    glad_vkGetQueueCheckpointData2NV = (PFN_vkGetQueueCheckpointData2NV) load(userptr, "vkGetQueueCheckpointData2NV");
     glad_vkQueueSubmit2KHR = (PFN_vkQueueSubmit2KHR) load(userptr, "vkQueueSubmit2KHR");
 }
 static void glad_vk_load_VK_KHR_timeline_semaphore( GLADuserptrloadfunc load, void* userptr) {
@@ -2528,6 +2557,7 @@ static void glad_vk_load_VK_NV_cuda_kernel_launch( GLADuserptrloadfunc load, voi
 static void glad_vk_load_VK_NV_device_diagnostic_checkpoints( GLADuserptrloadfunc load, void* userptr) {
     if(!GLAD_VK_NV_device_diagnostic_checkpoints) return;
     glad_vkCmdSetCheckpointNV = (PFN_vkCmdSetCheckpointNV) load(userptr, "vkCmdSetCheckpointNV");
+    glad_vkGetQueueCheckpointData2NV = (PFN_vkGetQueueCheckpointData2NV) load(userptr, "vkGetQueueCheckpointData2NV");
     glad_vkGetQueueCheckpointDataNV = (PFN_vkGetQueueCheckpointDataNV) load(userptr, "vkGetQueueCheckpointDataNV");
 }
 static void glad_vk_load_VK_NV_device_generated_commands( GLADuserptrloadfunc load, void* userptr) {
@@ -2833,6 +2863,7 @@ static int glad_vk_find_extensions_vulkan( VkPhysicalDevice physical_device) {
     GLAD_VK_EXT_debug_report = glad_vk_has_extension("VK_EXT_debug_report", extension_count, extensions);
     GLAD_VK_EXT_debug_utils = glad_vk_has_extension("VK_EXT_debug_utils", extension_count, extensions);
     GLAD_VK_EXT_depth_bias_control = glad_vk_has_extension("VK_EXT_depth_bias_control", extension_count, extensions);
+    GLAD_VK_EXT_depth_clamp_control = glad_vk_has_extension("VK_EXT_depth_clamp_control", extension_count, extensions);
     GLAD_VK_EXT_depth_clamp_zero_one = glad_vk_has_extension("VK_EXT_depth_clamp_zero_one", extension_count, extensions);
     GLAD_VK_EXT_depth_clip_control = glad_vk_has_extension("VK_EXT_depth_clip_control", extension_count, extensions);
     GLAD_VK_EXT_depth_clip_enable = glad_vk_has_extension("VK_EXT_depth_clip_enable", extension_count, extensions);
@@ -2841,6 +2872,7 @@ static int glad_vk_find_extensions_vulkan( VkPhysicalDevice physical_device) {
     GLAD_VK_EXT_descriptor_indexing = glad_vk_has_extension("VK_EXT_descriptor_indexing", extension_count, extensions);
     GLAD_VK_EXT_device_address_binding_report = glad_vk_has_extension("VK_EXT_device_address_binding_report", extension_count, extensions);
     GLAD_VK_EXT_device_fault = glad_vk_has_extension("VK_EXT_device_fault", extension_count, extensions);
+    GLAD_VK_EXT_device_generated_commands = glad_vk_has_extension("VK_EXT_device_generated_commands", extension_count, extensions);
     GLAD_VK_EXT_device_memory_report = glad_vk_has_extension("VK_EXT_device_memory_report", extension_count, extensions);
     GLAD_VK_EXT_direct_mode_display = glad_vk_has_extension("VK_EXT_direct_mode_display", extension_count, extensions);
 #if defined(VK_USE_PLATFORM_DIRECTFB_EXT)
@@ -2915,6 +2947,7 @@ static int glad_vk_find_extensions_vulkan( VkPhysicalDevice physical_device) {
     GLAD_VK_EXT_pipeline_protected_access = glad_vk_has_extension("VK_EXT_pipeline_protected_access", extension_count, extensions);
     GLAD_VK_EXT_pipeline_robustness = glad_vk_has_extension("VK_EXT_pipeline_robustness", extension_count, extensions);
     GLAD_VK_EXT_post_depth_coverage = glad_vk_has_extension("VK_EXT_post_depth_coverage", extension_count, extensions);
+    GLAD_VK_EXT_present_mode_fifo_latest_ready = glad_vk_has_extension("VK_EXT_present_mode_fifo_latest_ready", extension_count, extensions);
     GLAD_VK_EXT_primitive_topology_list_restart = glad_vk_has_extension("VK_EXT_primitive_topology_list_restart", extension_count, extensions);
     GLAD_VK_EXT_primitives_generated_query = glad_vk_has_extension("VK_EXT_primitives_generated_query", extension_count, extensions);
     GLAD_VK_EXT_private_data = glad_vk_has_extension("VK_EXT_private_data", extension_count, extensions);
@@ -3335,8 +3368,10 @@ int gladLoadVulkanUserPtr( VkPhysicalDevice physical_device, GLADuserptrloadfunc
     glad_vk_load_VK_EXT_debug_report(load, userptr);
     glad_vk_load_VK_EXT_debug_utils(load, userptr);
     glad_vk_load_VK_EXT_depth_bias_control(load, userptr);
+    glad_vk_load_VK_EXT_depth_clamp_control(load, userptr);
     glad_vk_load_VK_EXT_descriptor_buffer(load, userptr);
     glad_vk_load_VK_EXT_device_fault(load, userptr);
+    glad_vk_load_VK_EXT_device_generated_commands(load, userptr);
     glad_vk_load_VK_EXT_direct_mode_display(load, userptr);
 #if defined(VK_USE_PLATFORM_DIRECTFB_EXT)
     glad_vk_load_VK_EXT_directfb_surface(load, userptr);
@@ -3553,6 +3588,777 @@ int gladLoadVulkan( VkPhysicalDevice physical_device, GLADloadfunc load) {
 
  
 
+#ifdef GLAD_VULKAN
+
+#ifndef GLAD_LOADER_LIBRARY_C_
+#define GLAD_LOADER_LIBRARY_C_
+
+#include <stddef.h>
+#include <stdlib.h>
+
+#if GLAD_PLATFORM_WIN32
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+
+
+static void* glad_get_dlopen_handle(const char *lib_names[], int length) {
+    void *handle = NULL;
+    int i;
+
+    for (i = 0; i < length; ++i) {
+#if GLAD_PLATFORM_WIN32
+  #if GLAD_PLATFORM_UWP
+        size_t buffer_size = (strlen(lib_names[i]) + 1) * sizeof(WCHAR);
+        LPWSTR buffer = (LPWSTR) malloc(buffer_size);
+        if (buffer != NULL) {
+            int ret = MultiByteToWideChar(CP_ACP, 0, lib_names[i], -1, buffer, buffer_size);
+            if (ret != 0) {
+                handle = (void*) LoadPackagedLibrary(buffer, 0);
+            }
+            free((void*) buffer);
+        }
+  #else
+        handle = (void*) LoadLibraryA(lib_names[i]);
+  #endif
+#else
+        handle = dlopen(lib_names[i], RTLD_LAZY | RTLD_LOCAL);
+#endif
+        if (handle != NULL) {
+            return handle;
+        }
+    }
+
+    return NULL;
+}
+
+static void glad_close_dlopen_handle(void* handle) {
+    if (handle != NULL) {
+#if GLAD_PLATFORM_WIN32
+        FreeLibrary((HMODULE) handle);
+#else
+        dlclose(handle);
+#endif
+    }
+}
+
+static GLADapiproc glad_dlsym_handle(void* handle, const char *name) {
+    if (handle == NULL) {
+        return NULL;
+    }
+
+#if GLAD_PLATFORM_WIN32
+    return (GLADapiproc) GetProcAddress((HMODULE) handle, name);
+#else
+    return GLAD_GNUC_EXTENSION (GLADapiproc) dlsym(handle, name);
+#endif
+}
+
+#endif /* GLAD_LOADER_LIBRARY_C_ */
+
+
+static const char* DEVICE_FUNCTIONS[] = {
+    "vkAcquireFullScreenExclusiveModeEXT",
+    "vkAcquireNextImage2KHR",
+    "vkAcquireNextImageKHR",
+    "vkAcquirePerformanceConfigurationINTEL",
+    "vkAcquireProfilingLockKHR",
+    "vkAllocateCommandBuffers",
+    "vkAllocateDescriptorSets",
+    "vkAllocateMemory",
+    "vkAntiLagUpdateAMD",
+    "vkBeginCommandBuffer",
+    "vkBindAccelerationStructureMemoryNV",
+    "vkBindBufferMemory",
+    "vkBindBufferMemory2",
+    "vkBindBufferMemory2KHR",
+    "vkBindImageMemory",
+    "vkBindImageMemory2",
+    "vkBindImageMemory2KHR",
+    "vkBindOpticalFlowSessionImageNV",
+    "vkBindVideoSessionMemoryKHR",
+    "vkBuildAccelerationStructuresKHR",
+    "vkBuildMicromapsEXT",
+    "vkCmdBeginConditionalRenderingEXT",
+    "vkCmdBeginDebugUtilsLabelEXT",
+    "vkCmdBeginQuery",
+    "vkCmdBeginQueryIndexedEXT",
+    "vkCmdBeginRenderPass",
+    "vkCmdBeginRenderPass2",
+    "vkCmdBeginRenderPass2KHR",
+    "vkCmdBeginRendering",
+    "vkCmdBeginRenderingKHR",
+    "vkCmdBeginTransformFeedbackEXT",
+    "vkCmdBeginVideoCodingKHR",
+    "vkCmdBindDescriptorBufferEmbeddedSamplers2EXT",
+    "vkCmdBindDescriptorBufferEmbeddedSamplersEXT",
+    "vkCmdBindDescriptorBuffersEXT",
+    "vkCmdBindDescriptorSets",
+    "vkCmdBindDescriptorSets2KHR",
+    "vkCmdBindIndexBuffer",
+    "vkCmdBindIndexBuffer2KHR",
+    "vkCmdBindInvocationMaskHUAWEI",
+    "vkCmdBindPipeline",
+    "vkCmdBindPipelineShaderGroupNV",
+    "vkCmdBindShadersEXT",
+    "vkCmdBindShadingRateImageNV",
+    "vkCmdBindTransformFeedbackBuffersEXT",
+    "vkCmdBindVertexBuffers",
+    "vkCmdBindVertexBuffers2",
+    "vkCmdBindVertexBuffers2EXT",
+    "vkCmdBlitImage",
+    "vkCmdBlitImage2",
+    "vkCmdBlitImage2KHR",
+    "vkCmdBuildAccelerationStructureNV",
+    "vkCmdBuildAccelerationStructuresIndirectKHR",
+    "vkCmdBuildAccelerationStructuresKHR",
+    "vkCmdBuildMicromapsEXT",
+    "vkCmdClearAttachments",
+    "vkCmdClearColorImage",
+    "vkCmdClearDepthStencilImage",
+    "vkCmdControlVideoCodingKHR",
+    "vkCmdCopyAccelerationStructureKHR",
+    "vkCmdCopyAccelerationStructureNV",
+    "vkCmdCopyAccelerationStructureToMemoryKHR",
+    "vkCmdCopyBuffer",
+    "vkCmdCopyBuffer2",
+    "vkCmdCopyBuffer2KHR",
+    "vkCmdCopyBufferToImage",
+    "vkCmdCopyBufferToImage2",
+    "vkCmdCopyBufferToImage2KHR",
+    "vkCmdCopyImage",
+    "vkCmdCopyImage2",
+    "vkCmdCopyImage2KHR",
+    "vkCmdCopyImageToBuffer",
+    "vkCmdCopyImageToBuffer2",
+    "vkCmdCopyImageToBuffer2KHR",
+    "vkCmdCopyMemoryIndirectNV",
+    "vkCmdCopyMemoryToAccelerationStructureKHR",
+    "vkCmdCopyMemoryToImageIndirectNV",
+    "vkCmdCopyMemoryToMicromapEXT",
+    "vkCmdCopyMicromapEXT",
+    "vkCmdCopyMicromapToMemoryEXT",
+    "vkCmdCopyQueryPoolResults",
+    "vkCmdCuLaunchKernelNVX",
+    "vkCmdCudaLaunchKernelNV",
+    "vkCmdDebugMarkerBeginEXT",
+    "vkCmdDebugMarkerEndEXT",
+    "vkCmdDebugMarkerInsertEXT",
+    "vkCmdDecodeVideoKHR",
+    "vkCmdDecompressMemoryIndirectCountNV",
+    "vkCmdDecompressMemoryNV",
+    "vkCmdDispatch",
+    "vkCmdDispatchBase",
+    "vkCmdDispatchBaseKHR",
+    "vkCmdDispatchGraphAMDX",
+    "vkCmdDispatchGraphIndirectAMDX",
+    "vkCmdDispatchGraphIndirectCountAMDX",
+    "vkCmdDispatchIndirect",
+    "vkCmdDraw",
+    "vkCmdDrawClusterHUAWEI",
+    "vkCmdDrawClusterIndirectHUAWEI",
+    "vkCmdDrawIndexed",
+    "vkCmdDrawIndexedIndirect",
+    "vkCmdDrawIndexedIndirectCount",
+    "vkCmdDrawIndexedIndirectCountAMD",
+    "vkCmdDrawIndexedIndirectCountKHR",
+    "vkCmdDrawIndirect",
+    "vkCmdDrawIndirectByteCountEXT",
+    "vkCmdDrawIndirectCount",
+    "vkCmdDrawIndirectCountAMD",
+    "vkCmdDrawIndirectCountKHR",
+    "vkCmdDrawMeshTasksEXT",
+    "vkCmdDrawMeshTasksIndirectCountEXT",
+    "vkCmdDrawMeshTasksIndirectCountNV",
+    "vkCmdDrawMeshTasksIndirectEXT",
+    "vkCmdDrawMeshTasksIndirectNV",
+    "vkCmdDrawMeshTasksNV",
+    "vkCmdDrawMultiEXT",
+    "vkCmdDrawMultiIndexedEXT",
+    "vkCmdEncodeVideoKHR",
+    "vkCmdEndConditionalRenderingEXT",
+    "vkCmdEndDebugUtilsLabelEXT",
+    "vkCmdEndQuery",
+    "vkCmdEndQueryIndexedEXT",
+    "vkCmdEndRenderPass",
+    "vkCmdEndRenderPass2",
+    "vkCmdEndRenderPass2KHR",
+    "vkCmdEndRendering",
+    "vkCmdEndRenderingKHR",
+    "vkCmdEndTransformFeedbackEXT",
+    "vkCmdEndVideoCodingKHR",
+    "vkCmdExecuteCommands",
+    "vkCmdExecuteGeneratedCommandsEXT",
+    "vkCmdExecuteGeneratedCommandsNV",
+    "vkCmdFillBuffer",
+    "vkCmdInitializeGraphScratchMemoryAMDX",
+    "vkCmdInsertDebugUtilsLabelEXT",
+    "vkCmdNextSubpass",
+    "vkCmdNextSubpass2",
+    "vkCmdNextSubpass2KHR",
+    "vkCmdOpticalFlowExecuteNV",
+    "vkCmdPipelineBarrier",
+    "vkCmdPipelineBarrier2",
+    "vkCmdPipelineBarrier2KHR",
+    "vkCmdPreprocessGeneratedCommandsEXT",
+    "vkCmdPreprocessGeneratedCommandsNV",
+    "vkCmdPushConstants",
+    "vkCmdPushConstants2KHR",
+    "vkCmdPushDescriptorSet2KHR",
+    "vkCmdPushDescriptorSetKHR",
+    "vkCmdPushDescriptorSetWithTemplate2KHR",
+    "vkCmdPushDescriptorSetWithTemplateKHR",
+    "vkCmdResetEvent",
+    "vkCmdResetEvent2",
+    "vkCmdResetEvent2KHR",
+    "vkCmdResetQueryPool",
+    "vkCmdResolveImage",
+    "vkCmdResolveImage2",
+    "vkCmdResolveImage2KHR",
+    "vkCmdSetAlphaToCoverageEnableEXT",
+    "vkCmdSetAlphaToOneEnableEXT",
+    "vkCmdSetAttachmentFeedbackLoopEnableEXT",
+    "vkCmdSetBlendConstants",
+    "vkCmdSetCheckpointNV",
+    "vkCmdSetCoarseSampleOrderNV",
+    "vkCmdSetColorBlendAdvancedEXT",
+    "vkCmdSetColorBlendEnableEXT",
+    "vkCmdSetColorBlendEquationEXT",
+    "vkCmdSetColorWriteEnableEXT",
+    "vkCmdSetColorWriteMaskEXT",
+    "vkCmdSetConservativeRasterizationModeEXT",
+    "vkCmdSetCoverageModulationModeNV",
+    "vkCmdSetCoverageModulationTableEnableNV",
+    "vkCmdSetCoverageModulationTableNV",
+    "vkCmdSetCoverageReductionModeNV",
+    "vkCmdSetCoverageToColorEnableNV",
+    "vkCmdSetCoverageToColorLocationNV",
+    "vkCmdSetCullMode",
+    "vkCmdSetCullModeEXT",
+    "vkCmdSetDepthBias",
+    "vkCmdSetDepthBias2EXT",
+    "vkCmdSetDepthBiasEnable",
+    "vkCmdSetDepthBiasEnableEXT",
+    "vkCmdSetDepthBounds",
+    "vkCmdSetDepthBoundsTestEnable",
+    "vkCmdSetDepthBoundsTestEnableEXT",
+    "vkCmdSetDepthClampEnableEXT",
+    "vkCmdSetDepthClampRangeEXT",
+    "vkCmdSetDepthClipEnableEXT",
+    "vkCmdSetDepthClipNegativeOneToOneEXT",
+    "vkCmdSetDepthCompareOp",
+    "vkCmdSetDepthCompareOpEXT",
+    "vkCmdSetDepthTestEnable",
+    "vkCmdSetDepthTestEnableEXT",
+    "vkCmdSetDepthWriteEnable",
+    "vkCmdSetDepthWriteEnableEXT",
+    "vkCmdSetDescriptorBufferOffsets2EXT",
+    "vkCmdSetDescriptorBufferOffsetsEXT",
+    "vkCmdSetDeviceMask",
+    "vkCmdSetDeviceMaskKHR",
+    "vkCmdSetDiscardRectangleEXT",
+    "vkCmdSetDiscardRectangleEnableEXT",
+    "vkCmdSetDiscardRectangleModeEXT",
+    "vkCmdSetEvent",
+    "vkCmdSetEvent2",
+    "vkCmdSetEvent2KHR",
+    "vkCmdSetExclusiveScissorEnableNV",
+    "vkCmdSetExclusiveScissorNV",
+    "vkCmdSetExtraPrimitiveOverestimationSizeEXT",
+    "vkCmdSetFragmentShadingRateEnumNV",
+    "vkCmdSetFragmentShadingRateKHR",
+    "vkCmdSetFrontFace",
+    "vkCmdSetFrontFaceEXT",
+    "vkCmdSetLineRasterizationModeEXT",
+    "vkCmdSetLineStippleEXT",
+    "vkCmdSetLineStippleEnableEXT",
+    "vkCmdSetLineStippleKHR",
+    "vkCmdSetLineWidth",
+    "vkCmdSetLogicOpEXT",
+    "vkCmdSetLogicOpEnableEXT",
+    "vkCmdSetPatchControlPointsEXT",
+    "vkCmdSetPerformanceMarkerINTEL",
+    "vkCmdSetPerformanceOverrideINTEL",
+    "vkCmdSetPerformanceStreamMarkerINTEL",
+    "vkCmdSetPolygonModeEXT",
+    "vkCmdSetPrimitiveRestartEnable",
+    "vkCmdSetPrimitiveRestartEnableEXT",
+    "vkCmdSetPrimitiveTopology",
+    "vkCmdSetPrimitiveTopologyEXT",
+    "vkCmdSetProvokingVertexModeEXT",
+    "vkCmdSetRasterizationSamplesEXT",
+    "vkCmdSetRasterizationStreamEXT",
+    "vkCmdSetRasterizerDiscardEnable",
+    "vkCmdSetRasterizerDiscardEnableEXT",
+    "vkCmdSetRayTracingPipelineStackSizeKHR",
+    "vkCmdSetRenderingAttachmentLocationsKHR",
+    "vkCmdSetRenderingInputAttachmentIndicesKHR",
+    "vkCmdSetRepresentativeFragmentTestEnableNV",
+    "vkCmdSetSampleLocationsEXT",
+    "vkCmdSetSampleLocationsEnableEXT",
+    "vkCmdSetSampleMaskEXT",
+    "vkCmdSetScissor",
+    "vkCmdSetScissorWithCount",
+    "vkCmdSetScissorWithCountEXT",
+    "vkCmdSetShadingRateImageEnableNV",
+    "vkCmdSetStencilCompareMask",
+    "vkCmdSetStencilOp",
+    "vkCmdSetStencilOpEXT",
+    "vkCmdSetStencilReference",
+    "vkCmdSetStencilTestEnable",
+    "vkCmdSetStencilTestEnableEXT",
+    "vkCmdSetStencilWriteMask",
+    "vkCmdSetTessellationDomainOriginEXT",
+    "vkCmdSetVertexInputEXT",
+    "vkCmdSetViewport",
+    "vkCmdSetViewportShadingRatePaletteNV",
+    "vkCmdSetViewportSwizzleNV",
+    "vkCmdSetViewportWScalingEnableNV",
+    "vkCmdSetViewportWScalingNV",
+    "vkCmdSetViewportWithCount",
+    "vkCmdSetViewportWithCountEXT",
+    "vkCmdSubpassShadingHUAWEI",
+    "vkCmdTraceRaysIndirect2KHR",
+    "vkCmdTraceRaysIndirectKHR",
+    "vkCmdTraceRaysKHR",
+    "vkCmdTraceRaysNV",
+    "vkCmdUpdateBuffer",
+    "vkCmdUpdatePipelineIndirectBufferNV",
+    "vkCmdWaitEvents",
+    "vkCmdWaitEvents2",
+    "vkCmdWaitEvents2KHR",
+    "vkCmdWriteAccelerationStructuresPropertiesKHR",
+    "vkCmdWriteAccelerationStructuresPropertiesNV",
+    "vkCmdWriteBufferMarker2AMD",
+    "vkCmdWriteBufferMarkerAMD",
+    "vkCmdWriteMicromapsPropertiesEXT",
+    "vkCmdWriteTimestamp",
+    "vkCmdWriteTimestamp2",
+    "vkCmdWriteTimestamp2KHR",
+    "vkCompileDeferredNV",
+    "vkCopyAccelerationStructureKHR",
+    "vkCopyAccelerationStructureToMemoryKHR",
+    "vkCopyImageToImageEXT",
+    "vkCopyImageToMemoryEXT",
+    "vkCopyMemoryToAccelerationStructureKHR",
+    "vkCopyMemoryToImageEXT",
+    "vkCopyMemoryToMicromapEXT",
+    "vkCopyMicromapEXT",
+    "vkCopyMicromapToMemoryEXT",
+    "vkCreateAccelerationStructureKHR",
+    "vkCreateAccelerationStructureNV",
+    "vkCreateBuffer",
+    "vkCreateBufferCollectionFUCHSIA",
+    "vkCreateBufferView",
+    "vkCreateCommandPool",
+    "vkCreateComputePipelines",
+    "vkCreateCuFunctionNVX",
+    "vkCreateCuModuleNVX",
+    "vkCreateCudaFunctionNV",
+    "vkCreateCudaModuleNV",
+    "vkCreateDeferredOperationKHR",
+    "vkCreateDescriptorPool",
+    "vkCreateDescriptorSetLayout",
+    "vkCreateDescriptorUpdateTemplate",
+    "vkCreateDescriptorUpdateTemplateKHR",
+    "vkCreateEvent",
+    "vkCreateExecutionGraphPipelinesAMDX",
+    "vkCreateFence",
+    "vkCreateFramebuffer",
+    "vkCreateGraphicsPipelines",
+    "vkCreateImage",
+    "vkCreateImageView",
+    "vkCreateIndirectCommandsLayoutEXT",
+    "vkCreateIndirectCommandsLayoutNV",
+    "vkCreateIndirectExecutionSetEXT",
+    "vkCreateMicromapEXT",
+    "vkCreateOpticalFlowSessionNV",
+    "vkCreatePipelineBinariesKHR",
+    "vkCreatePipelineCache",
+    "vkCreatePipelineLayout",
+    "vkCreatePrivateDataSlot",
+    "vkCreatePrivateDataSlotEXT",
+    "vkCreateQueryPool",
+    "vkCreateRayTracingPipelinesKHR",
+    "vkCreateRayTracingPipelinesNV",
+    "vkCreateRenderPass",
+    "vkCreateRenderPass2",
+    "vkCreateRenderPass2KHR",
+    "vkCreateSampler",
+    "vkCreateSamplerYcbcrConversion",
+    "vkCreateSamplerYcbcrConversionKHR",
+    "vkCreateSemaphore",
+    "vkCreateShaderModule",
+    "vkCreateShadersEXT",
+    "vkCreateSharedSwapchainsKHR",
+    "vkCreateSwapchainKHR",
+    "vkCreateValidationCacheEXT",
+    "vkCreateVideoSessionKHR",
+    "vkCreateVideoSessionParametersKHR",
+    "vkDebugMarkerSetObjectNameEXT",
+    "vkDebugMarkerSetObjectTagEXT",
+    "vkDeferredOperationJoinKHR",
+    "vkDestroyAccelerationStructureKHR",
+    "vkDestroyAccelerationStructureNV",
+    "vkDestroyBuffer",
+    "vkDestroyBufferCollectionFUCHSIA",
+    "vkDestroyBufferView",
+    "vkDestroyCommandPool",
+    "vkDestroyCuFunctionNVX",
+    "vkDestroyCuModuleNVX",
+    "vkDestroyCudaFunctionNV",
+    "vkDestroyCudaModuleNV",
+    "vkDestroyDeferredOperationKHR",
+    "vkDestroyDescriptorPool",
+    "vkDestroyDescriptorSetLayout",
+    "vkDestroyDescriptorUpdateTemplate",
+    "vkDestroyDescriptorUpdateTemplateKHR",
+    "vkDestroyDevice",
+    "vkDestroyEvent",
+    "vkDestroyFence",
+    "vkDestroyFramebuffer",
+    "vkDestroyImage",
+    "vkDestroyImageView",
+    "vkDestroyIndirectCommandsLayoutEXT",
+    "vkDestroyIndirectCommandsLayoutNV",
+    "vkDestroyIndirectExecutionSetEXT",
+    "vkDestroyMicromapEXT",
+    "vkDestroyOpticalFlowSessionNV",
+    "vkDestroyPipeline",
+    "vkDestroyPipelineBinaryKHR",
+    "vkDestroyPipelineCache",
+    "vkDestroyPipelineLayout",
+    "vkDestroyPrivateDataSlot",
+    "vkDestroyPrivateDataSlotEXT",
+    "vkDestroyQueryPool",
+    "vkDestroyRenderPass",
+    "vkDestroySampler",
+    "vkDestroySamplerYcbcrConversion",
+    "vkDestroySamplerYcbcrConversionKHR",
+    "vkDestroySemaphore",
+    "vkDestroyShaderEXT",
+    "vkDestroyShaderModule",
+    "vkDestroySwapchainKHR",
+    "vkDestroyValidationCacheEXT",
+    "vkDestroyVideoSessionKHR",
+    "vkDestroyVideoSessionParametersKHR",
+    "vkDeviceWaitIdle",
+    "vkDisplayPowerControlEXT",
+    "vkEndCommandBuffer",
+    "vkExportMetalObjectsEXT",
+    "vkFlushMappedMemoryRanges",
+    "vkFreeCommandBuffers",
+    "vkFreeDescriptorSets",
+    "vkFreeMemory",
+    "vkGetAccelerationStructureBuildSizesKHR",
+    "vkGetAccelerationStructureDeviceAddressKHR",
+    "vkGetAccelerationStructureHandleNV",
+    "vkGetAccelerationStructureMemoryRequirementsNV",
+    "vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT",
+    "vkGetAndroidHardwareBufferPropertiesANDROID",
+    "vkGetBufferCollectionPropertiesFUCHSIA",
+    "vkGetBufferDeviceAddress",
+    "vkGetBufferDeviceAddressEXT",
+    "vkGetBufferDeviceAddressKHR",
+    "vkGetBufferMemoryRequirements",
+    "vkGetBufferMemoryRequirements2",
+    "vkGetBufferMemoryRequirements2KHR",
+    "vkGetBufferOpaqueCaptureAddress",
+    "vkGetBufferOpaqueCaptureAddressKHR",
+    "vkGetBufferOpaqueCaptureDescriptorDataEXT",
+    "vkGetCalibratedTimestampsEXT",
+    "vkGetCalibratedTimestampsKHR",
+    "vkGetCudaModuleCacheNV",
+    "vkGetDeferredOperationMaxConcurrencyKHR",
+    "vkGetDeferredOperationResultKHR",
+    "vkGetDescriptorEXT",
+    "vkGetDescriptorSetHostMappingVALVE",
+    "vkGetDescriptorSetLayoutBindingOffsetEXT",
+    "vkGetDescriptorSetLayoutHostMappingInfoVALVE",
+    "vkGetDescriptorSetLayoutSizeEXT",
+    "vkGetDescriptorSetLayoutSupport",
+    "vkGetDescriptorSetLayoutSupportKHR",
+    "vkGetDeviceAccelerationStructureCompatibilityKHR",
+    "vkGetDeviceBufferMemoryRequirements",
+    "vkGetDeviceBufferMemoryRequirementsKHR",
+    "vkGetDeviceFaultInfoEXT",
+    "vkGetDeviceGroupPeerMemoryFeatures",
+    "vkGetDeviceGroupPeerMemoryFeaturesKHR",
+    "vkGetDeviceGroupPresentCapabilitiesKHR",
+    "vkGetDeviceGroupSurfacePresentModes2EXT",
+    "vkGetDeviceGroupSurfacePresentModesKHR",
+    "vkGetDeviceImageMemoryRequirements",
+    "vkGetDeviceImageMemoryRequirementsKHR",
+    "vkGetDeviceImageSparseMemoryRequirements",
+    "vkGetDeviceImageSparseMemoryRequirementsKHR",
+    "vkGetDeviceImageSubresourceLayoutKHR",
+    "vkGetDeviceMemoryCommitment",
+    "vkGetDeviceMemoryOpaqueCaptureAddress",
+    "vkGetDeviceMemoryOpaqueCaptureAddressKHR",
+    "vkGetDeviceMicromapCompatibilityEXT",
+    "vkGetDeviceProcAddr",
+    "vkGetDeviceQueue",
+    "vkGetDeviceQueue2",
+    "vkGetDeviceSubpassShadingMaxWorkgroupSizeHUAWEI",
+    "vkGetDynamicRenderingTilePropertiesQCOM",
+    "vkGetEncodedVideoSessionParametersKHR",
+    "vkGetEventStatus",
+    "vkGetExecutionGraphPipelineNodeIndexAMDX",
+    "vkGetExecutionGraphPipelineScratchSizeAMDX",
+    "vkGetFenceFdKHR",
+    "vkGetFenceStatus",
+    "vkGetFenceWin32HandleKHR",
+    "vkGetFramebufferTilePropertiesQCOM",
+    "vkGetGeneratedCommandsMemoryRequirementsEXT",
+    "vkGetGeneratedCommandsMemoryRequirementsNV",
+    "vkGetImageDrmFormatModifierPropertiesEXT",
+    "vkGetImageMemoryRequirements",
+    "vkGetImageMemoryRequirements2",
+    "vkGetImageMemoryRequirements2KHR",
+    "vkGetImageOpaqueCaptureDescriptorDataEXT",
+    "vkGetImageSparseMemoryRequirements",
+    "vkGetImageSparseMemoryRequirements2",
+    "vkGetImageSparseMemoryRequirements2KHR",
+    "vkGetImageSubresourceLayout",
+    "vkGetImageSubresourceLayout2EXT",
+    "vkGetImageSubresourceLayout2KHR",
+    "vkGetImageViewAddressNVX",
+    "vkGetImageViewHandleNVX",
+    "vkGetImageViewOpaqueCaptureDescriptorDataEXT",
+    "vkGetLatencyTimingsNV",
+    "vkGetMemoryAndroidHardwareBufferANDROID",
+    "vkGetMemoryFdKHR",
+    "vkGetMemoryFdPropertiesKHR",
+    "vkGetMemoryHostPointerPropertiesEXT",
+    "vkGetMemoryRemoteAddressNV",
+    "vkGetMemoryWin32HandleKHR",
+    "vkGetMemoryWin32HandleNV",
+    "vkGetMemoryWin32HandlePropertiesKHR",
+    "vkGetMemoryZirconHandleFUCHSIA",
+    "vkGetMemoryZirconHandlePropertiesFUCHSIA",
+    "vkGetMicromapBuildSizesEXT",
+    "vkGetPastPresentationTimingGOOGLE",
+    "vkGetPerformanceParameterINTEL",
+    "vkGetPipelineBinaryDataKHR",
+    "vkGetPipelineCacheData",
+    "vkGetPipelineExecutableInternalRepresentationsKHR",
+    "vkGetPipelineExecutablePropertiesKHR",
+    "vkGetPipelineExecutableStatisticsKHR",
+    "vkGetPipelineIndirectDeviceAddressNV",
+    "vkGetPipelineIndirectMemoryRequirementsNV",
+    "vkGetPipelineKeyKHR",
+    "vkGetPipelinePropertiesEXT",
+    "vkGetPrivateData",
+    "vkGetPrivateDataEXT",
+    "vkGetQueryPoolResults",
+    "vkGetQueueCheckpointData2NV",
+    "vkGetQueueCheckpointDataNV",
+    "vkGetRayTracingCaptureReplayShaderGroupHandlesKHR",
+    "vkGetRayTracingShaderGroupHandlesKHR",
+    "vkGetRayTracingShaderGroupHandlesNV",
+    "vkGetRayTracingShaderGroupStackSizeKHR",
+    "vkGetRefreshCycleDurationGOOGLE",
+    "vkGetRenderAreaGranularity",
+    "vkGetRenderingAreaGranularityKHR",
+    "vkGetSamplerOpaqueCaptureDescriptorDataEXT",
+    "vkGetScreenBufferPropertiesQNX",
+    "vkGetSemaphoreCounterValue",
+    "vkGetSemaphoreCounterValueKHR",
+    "vkGetSemaphoreFdKHR",
+    "vkGetSemaphoreWin32HandleKHR",
+    "vkGetSemaphoreZirconHandleFUCHSIA",
+    "vkGetShaderBinaryDataEXT",
+    "vkGetShaderInfoAMD",
+    "vkGetShaderModuleCreateInfoIdentifierEXT",
+    "vkGetShaderModuleIdentifierEXT",
+    "vkGetSwapchainCounterEXT",
+    "vkGetSwapchainImagesKHR",
+    "vkGetSwapchainStatusKHR",
+    "vkGetValidationCacheDataEXT",
+    "vkGetVideoSessionMemoryRequirementsKHR",
+    "vkImportFenceFdKHR",
+    "vkImportFenceWin32HandleKHR",
+    "vkImportSemaphoreFdKHR",
+    "vkImportSemaphoreWin32HandleKHR",
+    "vkImportSemaphoreZirconHandleFUCHSIA",
+    "vkInitializePerformanceApiINTEL",
+    "vkInvalidateMappedMemoryRanges",
+    "vkLatencySleepNV",
+    "vkMapMemory",
+    "vkMapMemory2KHR",
+    "vkMergePipelineCaches",
+    "vkMergeValidationCachesEXT",
+    "vkQueueBeginDebugUtilsLabelEXT",
+    "vkQueueBindSparse",
+    "vkQueueEndDebugUtilsLabelEXT",
+    "vkQueueInsertDebugUtilsLabelEXT",
+    "vkQueueNotifyOutOfBandNV",
+    "vkQueuePresentKHR",
+    "vkQueueSetPerformanceConfigurationINTEL",
+    "vkQueueSubmit",
+    "vkQueueSubmit2",
+    "vkQueueSubmit2KHR",
+    "vkQueueWaitIdle",
+    "vkRegisterDeviceEventEXT",
+    "vkRegisterDisplayEventEXT",
+    "vkReleaseCapturedPipelineDataKHR",
+    "vkReleaseFullScreenExclusiveModeEXT",
+    "vkReleasePerformanceConfigurationINTEL",
+    "vkReleaseProfilingLockKHR",
+    "vkReleaseSwapchainImagesEXT",
+    "vkResetCommandBuffer",
+    "vkResetCommandPool",
+    "vkResetDescriptorPool",
+    "vkResetEvent",
+    "vkResetFences",
+    "vkResetQueryPool",
+    "vkResetQueryPoolEXT",
+    "vkSetBufferCollectionBufferConstraintsFUCHSIA",
+    "vkSetBufferCollectionImageConstraintsFUCHSIA",
+    "vkSetDebugUtilsObjectNameEXT",
+    "vkSetDebugUtilsObjectTagEXT",
+    "vkSetDeviceMemoryPriorityEXT",
+    "vkSetEvent",
+    "vkSetHdrMetadataEXT",
+    "vkSetLatencyMarkerNV",
+    "vkSetLatencySleepModeNV",
+    "vkSetLocalDimmingAMD",
+    "vkSetPrivateData",
+    "vkSetPrivateDataEXT",
+    "vkSignalSemaphore",
+    "vkSignalSemaphoreKHR",
+    "vkTransitionImageLayoutEXT",
+    "vkTrimCommandPool",
+    "vkTrimCommandPoolKHR",
+    "vkUninitializePerformanceApiINTEL",
+    "vkUnmapMemory",
+    "vkUnmapMemory2KHR",
+    "vkUpdateDescriptorSetWithTemplate",
+    "vkUpdateDescriptorSetWithTemplateKHR",
+    "vkUpdateDescriptorSets",
+    "vkUpdateIndirectExecutionSetPipelineEXT",
+    "vkUpdateIndirectExecutionSetShaderEXT",
+    "vkUpdateVideoSessionParametersKHR",
+    "vkWaitForFences",
+    "vkWaitForPresentKHR",
+    "vkWaitSemaphores",
+    "vkWaitSemaphoresKHR",
+    "vkWriteAccelerationStructuresPropertiesKHR",
+    "vkWriteMicromapsPropertiesEXT",
+};
+
+static int glad_vulkan_is_device_function(const char *name) {
+    /* Exists as a workaround for:
+     * https://github.com/KhronosGroup/Vulkan-LoaderAndValidationLayers/issues/2323
+     *
+     * `vkGetDeviceProcAddr` does not return NULL for non-device functions.
+     */
+    int i;
+    int length = sizeof(DEVICE_FUNCTIONS) / sizeof(DEVICE_FUNCTIONS[0]);
+
+    for (i=0; i < length; ++i) {
+        if (strcmp(DEVICE_FUNCTIONS[i], name) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+struct _glad_vulkan_userptr {
+    void *vk_handle;
+    VkInstance vk_instance;
+    VkDevice vk_device;
+    PFN_vkGetInstanceProcAddr get_instance_proc_addr;
+    PFN_vkGetDeviceProcAddr get_device_proc_addr;
+};
+
+static GLADapiproc glad_vulkan_get_proc(void *vuserptr, const char *name) {
+    struct _glad_vulkan_userptr userptr = *(struct _glad_vulkan_userptr*) vuserptr;
+    PFN_vkVoidFunction result = NULL;
+
+    if (userptr.vk_device != NULL && glad_vulkan_is_device_function(name)) {
+        result = userptr.get_device_proc_addr(userptr.vk_device, name);
+    }
+
+    if (result == NULL && userptr.vk_instance != NULL) {
+        result = userptr.get_instance_proc_addr(userptr.vk_instance, name);
+    }
+
+    if(result == NULL) {
+        result = (PFN_vkVoidFunction) glad_dlsym_handle(userptr.vk_handle, name);
+    }
+
+    return (GLADapiproc) result;
+}
+
+
+static void* _glad_Vulkan_loader_handle = NULL;
+
+static void* glad_vulkan_dlopen_handle(void) {
+    static const char *NAMES[] = {
+#if GLAD_PLATFORM_APPLE
+        "libvulkan.1.dylib",
+#elif GLAD_PLATFORM_WIN32
+        "vulkan-1.dll",
+        "vulkan.dll",
+#else
+        "libvulkan.so.1",
+        "libvulkan.so",
+#endif
+    };
+
+    if (_glad_Vulkan_loader_handle == NULL) {
+        _glad_Vulkan_loader_handle = glad_get_dlopen_handle(NAMES, sizeof(NAMES) / sizeof(NAMES[0]));
+    }
+
+    return _glad_Vulkan_loader_handle;
+}
+
+static struct _glad_vulkan_userptr glad_vulkan_build_userptr(void *handle, VkInstance instance, VkDevice device) {
+    struct _glad_vulkan_userptr userptr;
+    userptr.vk_handle = handle;
+    userptr.vk_instance = instance;
+    userptr.vk_device = device;
+    userptr.get_instance_proc_addr = (PFN_vkGetInstanceProcAddr) glad_dlsym_handle(handle, "vkGetInstanceProcAddr");
+    userptr.get_device_proc_addr = (PFN_vkGetDeviceProcAddr) glad_dlsym_handle(handle, "vkGetDeviceProcAddr");
+    return userptr;
+}
+
+int gladLoaderLoadVulkan( VkInstance instance, VkPhysicalDevice physical_device, VkDevice device) {
+    int version = 0;
+    void *handle = NULL;
+    int did_load = 0;
+    struct _glad_vulkan_userptr userptr;
+
+    did_load = _glad_Vulkan_loader_handle == NULL;
+    handle = glad_vulkan_dlopen_handle();
+    if (handle != NULL) {
+        userptr = glad_vulkan_build_userptr(handle, instance, device);
+
+        if (userptr.get_instance_proc_addr != NULL && userptr.get_device_proc_addr != NULL) {
+            version = gladLoadVulkanUserPtr( physical_device, glad_vulkan_get_proc, &userptr);
+        }
+
+        if (!version && did_load) {
+            gladLoaderUnloadVulkan();
+        }
+    }
+
+    return version;
+}
+
+
+
+void gladLoaderUnloadVulkan(void) {
+    if (_glad_Vulkan_loader_handle != NULL) {
+        glad_close_dlopen_handle(_glad_Vulkan_loader_handle);
+        _glad_Vulkan_loader_handle = NULL;
+    }
+}
+
+#endif /* GLAD_VULKAN */
 
 #ifdef __cplusplus
 }

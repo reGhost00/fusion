@@ -1,8 +1,10 @@
 #include <stdatomic.h>
+#include <stdlib.h>
 // custom header
 #include "array.h"
+#include "memory.h"
+#include "misc.h"
 #include "object.h"
-#include "utils.h"
 
 static FUPtrArray* defObjectClassArray = NULL;
 
@@ -254,19 +256,25 @@ FUObject* fu_object_ref(FUObject* obj)
     atomic_fetch_add(&real->ref, 1);
     return obj;
 }
+
 #undef fu_object_unref
 void fu_object_unref(FUObject* obj)
 {
     if (!obj)
         return;
     TObject* real = (TObject*)obj;
+    int prevRef = atomic_fetch_sub(&real->ref, 1);
+    if (0 >= prevRef) {
+        return;
+    }
 
     if (real->parent->dispose)
         real->parent->dispose(obj);
 
-    if (1 >= atomic_fetch_sub(&real->ref, 1))
+    if (1 >= prevRef)
         fu_object_finalize(obj);
 }
+
 #undef fu_object_set_user_data
 void fu_object_set_user_data(FUObject* obj, const char* key, void* data, FUNotify notify)
 {
@@ -274,6 +282,7 @@ void fu_object_set_user_data(FUObject* obj, const char* key, void* data, FUNotif
     TUserData* usd = t_usd_new(key, data, notify);
     fu_hash_table_insert(real->data, usd->key, usd);
 }
+
 #undef fu_object_get_user_data
 void* fu_object_get_user_data(FUObject* obj, const char* key)
 {

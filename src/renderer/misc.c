@@ -1,34 +1,30 @@
 #include <string.h>
 // custom
-#include "../core/utils.h"
-#include "types.h"
+#include "core/memory.h"
+#include "misc.inner.h"
+#include "platform/glfw.inner.h"
+#include "platform/sdl.inner.h"
+//
+// private
 
-#ifdef FU_NO_DEBUG
-#define DEF_WINDOW_TITLE_DEBUG_SUFFIX "[RELEASE]"
+void t_surface_update_size(FUWindow* window, FUSize* size)
+{
+    fu_return_if_fail(window && size);
+
+#ifdef FU_USE_GLFW
+    glfwGetFramebufferSize(window->window, (int*)(&size->width), (int*)(&size->height));
+    memcpy(&window->size, size, sizeof(FUSize));
 #else
-#define DEF_WINDOW_TITLE_DEBUG_SUFFIX "[DEBUG]"
+#ifdef FU_USE_SDL
+    SDL_GL_GetDrawableSize(window->window, &size->width, &size->height);
+    memcpy(&window->size, size, sizeof(FUSize));
+#else
+    fu_error("Not supported");
 #endif
-#ifdef FU_RENDERER_TYPE_GL
-#define DEF_WINDOW_TITLE_RENDER_SUFFIX "[GL]"
 #endif
-#define DEF_WINDOW_TITLE "fusion"
-FURect* fu_rect_new(uint32_t width, uint32_t height, uint32_t x, uint32_t y)
-{
-    FURect* rect = fu_malloc(sizeof(FURect));
-    rect->width = width;
-    rect->height = height;
-    rect->x = x;
-    rect->y = y;
-    return rect;
 }
-
-FUSize* fu_size_new(uint32_t width, uint32_t height)
-{
-    FUSize* size = fu_malloc(sizeof(FUSize));
-    size->width = width;
-    size->height = height;
-    return size;
-}
+//
+// public
 
 FUVec2* fu_vec2_ndc_new_from_screen(FUSize* screen, uint32_t x, uint32_t y)
 {
@@ -111,14 +107,14 @@ FURGBA* fu_rgba_new_blue()
     return rgba;
 }
 
-void fu_rgb_to_float(FURGB* rgb, float* fR, float* fG, float* fB)
+void fu_rgb_to_float(const FURGB* rgb, float* fR, float* fG, float* fB)
 {
     *fR = (rgb->r & 0xff) / 255.0f;
     *fG = (rgb->g & 0xff) / 255.0f;
     *fB = (rgb->b & 0xff) / 255.0f;
 }
 
-void fu_rgba_to_float(FURGBA* rgba, float* fR, float* fG, float* fB, float* fA)
+void fu_rgba_to_float(const FURGBA* rgba, float* fR, float* fG, float* fB, float* fA)
 {
     *fR = (rgba->r & 0xff) / 255.0f;
     *fG = (rgba->g & 0xff) / 255.0f;
@@ -126,26 +122,15 @@ void fu_rgba_to_float(FURGBA* rgba, float* fR, float* fG, float* fB, float* fA)
     *fA = (rgba->a & 0xff) / 255.0f;
 }
 
-/**
- * @brief 获取默认窗口配置
- * 窗口标题附加模式，窗口可调大小
- * @param title 窗口标题
- * @param width 最小宽度
- * @param height 最小高度
- * @return FUWindowConfig*
- */
-FUWindowConfig* fu_window_config_new(const char* title, uint32_t width, uint32_t height)
+void fu_window_push_context(FUWindow* win, FUContext* ctx)
 {
-    FUWindowConfig* cfg = fu_malloc0(sizeof(FUWindowConfig));
-    cfg->title = fu_strdup_printf("%s %s %s", title ? title : DEF_WINDOW_TITLE, DEF_WINDOW_TITLE_RENDER_SUFFIX, DEF_WINDOW_TITLE_DEBUG_SUFFIX);
-    cfg->minWidth = cfg->width = width;
-    cfg->minHeight = cfg->height = height;
-    cfg->resizable = true;
-    return cfg;
+    fu_return_if_fail(win && ctx);
+    ctx->idx = win->contexts->len;
+    fu_ptr_array_push(win->contexts, ctx);
 }
 
-void fu_window_config_free(FUWindowConfig* cfg)
+void fu_window_remove_context(FUWindow* win, FUContext* ctx)
 {
-    fu_free(cfg->title);
-    fu_free(cfg);
+    fu_return_if_fail(win && ctx);
+    fu_ptr_array_remove_index(win->contexts, ctx->idx);
 }

@@ -5,20 +5,19 @@
 #include "core/file.h"
 #include "core/hash2.h"
 #include "core/main.h"
+#include "core/memory.h"
+#include "core/misc.h"
 #include "core/object.h"
 #include "core/rand.h"
-#include "core/thread.h"
 #include "core/timer.h"
-#include "core/types.h"
-#include "core/utils.h"
 
-#include "renderer/gl2.h"
-#include "renderer/types.h"
-
-#ifdef FU_USE_SDL
-#include "platform/sdl.h"
-#else
 #include "platform/glfw.h"
-#endif
+#include "platform/misc.h"
+#include "platform/misc.linux.h"
+#include "platform/misc.window.h"
+#include "platform/sdl.h"
+
+// #include "renderer/backend2.h"
+#include "renderer/context2.h"
 
 #endif /* __G_CONVERT_H__ */

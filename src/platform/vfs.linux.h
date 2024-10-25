@@ -9,7 +9,8 @@
 #include <unistd.h>
 // custom
 #include "../core/file.h"
-#include "../core/utils.h"
+#include "../core/memory.h"
+#include "../core/misc.h"
 
 #define DEF_QUEUE_DEPTH 9
 

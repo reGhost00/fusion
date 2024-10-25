@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "types.h"
+#include "misc.h"
 
 typedef struct _FUHashTableIter {
     void* dummy[3];

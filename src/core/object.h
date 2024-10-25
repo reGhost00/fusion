@@ -2,14 +2,17 @@
 #define _FU_OBJECT_H_
 
 // #include "sc_map.h"
-#include <stdint.h>
-
 #include "hash2.h"
+#include "misc.h"
+#include <stdint.h>
 
 typedef struct _FUTypeInfo FUTypeInfo;
 typedef struct _FUObject FUObject;
 
 typedef struct _FUObjectClass FUObjectClass;
+
+typedef struct _FUAsyncResult FUAsyncResult;
+typedef void (*FUAsyncReadyCallback)(FUObject* obj, FUAsyncResult* res, void* usd);
 
 // typedef void (*FUNotify)(void* usd);
 typedef void (*FUSignalCallback0)(FUObject* obj, void* usd);

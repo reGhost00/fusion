@@ -2,17 +2,6 @@ cmake_minimum_required(VERSION 3.28.0)
 project(fusion VERSION 0.0.1)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/modules/" ${CMAKE_MODULE_PATH})
-# find_package(OpenGL REQUIRED)
-# include(FindPkgConfig)
-# pkg_check_modules(DEPS REQUIRED glfw3)
-# include_directories(${DEPS_INCLUDE_DIRS})
-#
-# GLAD
-set(GLAD_GL_HEADERS "libs/glad/include/glad/gl.h" "libs/glad/include/KHR/khrplatform.h")
-set(GLAD_GL_SOURCES "libs/glad/src/gl.c")
-# set(GLAD_H "libs/glad/include")
-add_library(glad STATIC ${GLAD_GL_HEADERS} ${GLAD_GL_SOURCES})
-include_directories("libs/glad/include")
 
 #
 # mimalloc
@@ -25,40 +14,86 @@ set(MI_DISABLE_INSTALL ON CACHE BOOL "no install")
 add_subdirectory("libs/mimalloc")
 include_directories("libs/mimalloc/include")
 
-option(FU_USE_GLFW "Use GLFW for windowing" OFF)
-option(FU_USE_SDL "Use SDL for windowing" OFF)
+#
+# cglm
+set(CGLM_SHARED OFF CACHE BOOL "Shared build")
+set(CGLM_STATIC ON CACHE BOOL "Static build")
+add_subdirectory("libs/cglm")
+include_directories("libs/cglm/include")
 
+option(FU_USE_GLFW "Use GLFW for windowing. this is default" OFF)
+option(FU_USE_GLFW_BUILTIN "Use GLFW Submodules version" OFF)
+option(FU_USE_SDL "Use SDL for windowing" OFF)
+option(FU_USE_SPIRV_IN_GL "Use SpirV in OpenGL" ON)
+
+#
+# Windowing
 if (FU_USE_SDL)
     find_package(SDL2 REQUIRED)
     include_directories(${SDL2_INCLUDE_DIRS})
     add_compile_definitions(FU_USE_SDL)
-else()
-#
-# GLFW
+elseif(FU_USE_GLFW_BUILTIN)
     set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW lib only")
     set(GLFW_INSTALL OFF CACHE BOOL "GLFW lib only")
     set(GLAD_GL "")
     add_subdirectory("libs/glfw")
     include_directories("libs/glfw/include")
     add_compile_definitions(FU_USE_GLFW)
+else()
+    find_package(glfw REQUIRED)
+    include_directories(${GLFW_INCLUDE_DIRS})
+    add_compile_definitions(FU_USE_GLFW)
 endif()
-# file(GLOB_RECURSE SRCS "src/*.c" "src/*.h")
-# add_library(${PROJECT_NAME} STATIC ${SRCS})
 
 # set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_CXX_STANDARD 23)
 
-option(FU_TRACK_MEMORY_ALLOCS "Track memory allocations" ON)
-
 option(FU_RENDERER_TYPE_GL "Use OpenGL renderer" OFF)
 option(FU_RENDERER_TYPE_VK "Use Vulkan renderer" OFF)
-# set_property(CACHE FU_DISABLE_TRACK_MEMORY PROPERTY BOOL ON OFF)
+option(FU_ENABLE_SPIRV_COMPILE "Enable SPIRV compilation in Vulkan" OFF)
+
+option(FU_TRACK_MEMORY_ALLOCS "Track memory allocations" ON)
+option(FU_DEBUG_DISABLED_ERROR_GUARD "Disable error guard in DEBUG mode" OFF)
+option(FU_DEBUG_DISABLED_ERROR_GUARD_MESSAGES "Disable error guard with message in DEBUG mode" OFF)
+option(FU_DEBUG_DISABLED_CHECK_CALLBACK "Disable error guard with callback in DEBUG mode" OFF)
+option(FU_DEBUG_DISABLED_CHECK_MESSAGE "Disable error guard with message in DEBUG mode" OFF)
+option(FU_DEBUG_DISABLED_FLOW_CONTROL "Disable flow control in DEBUG mode" OFF)
+
+option(FU_RELEASE_ENABLE_ERROR_GUARD "Enable error guard in RELEASE mode" OFF)
+option(FU_RELEASE_ENABLE_FLOW_CONTROL "Enable flow control in RELEASE mode" OFF)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    if (FU_DEBUG_DISABLED_ERROR_GUARD)
+        add_compile_definitions(FU_ERROR_GUARD_DISABLED)
+    endif()
+    if (FU_DEBUG_DISABLED_ERROR_GUARD_MESSAGES)
+        add_compile_definitions(FU_ERROR_GUARD_MSG_DISABLED)
+    endif()
+    if (FU_DEBUG_DISABLED_CHECK_CALLBACK)
+        add_compile_definitions(FU_CHECK_CALLBACK_DISABLED)
+    endif()
+    if (FU_DEBUG_DISABLED_CHECK_MESSAGE)
+        add_compile_definitions(FU_CHECK_CALLBACK_MSG_DISABLED)
+    endif()
+    if (FU_DEBUG_DISABLED_FLOW_CONTROL)
+        add_compile_definitions(FU_CONTROL_FLOW_DISABLED)
+    endif()
+    add_compile_definitions(FU_ERROR_GUARD_ENABLED)
+    add_compile_definitions(FU_CONTROL_FLOW_ENABLED)
     add_compile_options(-O0 -Wall -g)
 else()
-    add_compile_definitions(FU_NO_DEBUG)
+    if (FU_RELEASE_ENABLE_ERROR_GUARD)
+        add_compile_definitions(FU_ERROR_GUARD_ENABLED)
+    endif()
+    if (FU_RELEASE_ENABLE_FLOW_CONTROL)
+        add_compile_definitions(FU_CONTROL_FLOW_ENABLED)
+    endif()
+    add_compile_definitions(FU_ERROR_GUARD_DISABLED)
+    add_compile_definitions(FU_ERROR_GUARD_MSG_DISABLED)
+    add_compile_definitions(FU_CHECK_CALLBACK_DISABLED)
+    add_compile_definitions(FU_CHECK_CALLBACK_MSG_DISABLED)
+    add_compile_definitions(FU_CONTROL_FLOW_DISABLED)
     add_compile_definitions(FU_NO_TRACK_MEMORY)
     add_compile_options(-O2 -Wall)
 endif()
@@ -67,12 +102,27 @@ if (NOT FU_TRACK_MEMORY_ALLOCS)
     add_compile_definitions(FU_NO_TRACK_MEMORY)
 endif()
 
+set (GLAD_H "libs/glad/include")
+set (GLAD_SRC "libs/glad/src")
 if (FU_RENDERER_TYPE_VK)
+    #
+    # GLAD Vulkan
+    set(GLAD_VK_HEADERS "${GLAD_H}/glad/vulkan.h" "${GLAD_H}/vk_platform.h")
+    set(GLAD_VK_SOURCES "${GLAD_SRC}/vulkan.c")
+    add_library(glad STATIC ${GLAD_VK_HEADERS} ${GLAD_VK_SOURCES})
+    find_package(glslang REQUIRED)
     add_compile_definitions(FU_RENDERER_TYPE_VK)
 else()
+    #
+    # GLAD OpenGL
+    set(GLAD_GL_HEADERS "${GLAD_H}/glad/gl.h" "${GLAD_H}/KHR/khrplatform.h")
+    set(GLAD_GL_SOURCES "${GLAD_SRC}/gl.c")
+    add_library(glad STATIC ${GLAD_GL_HEADERS} ${GLAD_GL_SOURCES})
+
+    find_package(glslang REQUIRED)
     add_compile_definitions(FU_RENDERER_TYPE_GL)
 endif()
-
+include_directories(${GLAD_H})
 
 
 include_directories("src")

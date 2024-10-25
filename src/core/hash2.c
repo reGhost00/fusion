@@ -19,7 +19,8 @@
 #include <string.h>
 
 #include "hash2.h"
-#include "utils.h"
+#include "memory.h"
+#include "misc.h"
 
 #define DEF_MIN_MOD 4
 #define DEF_MAX_MOD 30

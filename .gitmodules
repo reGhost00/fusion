@@ -4,3 +4,6 @@
 [submodule "libs/mimalloc"]
 	path = libs/mimalloc
 	url = https://github.com/microsoft/mimalloc.git
+[submodule "libs/cglm"]
+	path = libs/cglm
+	url = https://github.com/recp/cglm.git

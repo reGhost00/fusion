@@ -1,9 +1,10 @@
-#include "timer.h"
 #include <time.h>
-
+// custom
+#include "../platform/misc.window.inner.h"
 #include "main.h"
+#include "memory.h"
 #include "object.h"
-#include "utils.h"
+#include "timer.h"
 
 #define DEF_TIMER_FORMAT_BUFF_LEN 1600
 //
@@ -25,6 +26,7 @@ typedef struct _FUTimeoutSource {
 
 FU_DEFINE_TYPE(FUTimeoutSource, fu_timeout_source, FU_TYPE_SOURCE)
 
+#ifdef _test
 #ifdef FU_OS_WINDOW
 #include <windows.h>
 
@@ -61,41 +63,6 @@ uint64_t fu_timer_measure(FUTimer* timer)
     timer->prev = curr;
     return diff;
 }
-
-//
-// TimeoutSource
-
-// static bool fu_timeout_source_check(FUSource* src, void* usd)
-// {
-//     FUTimeoutSource* timeoutSrc = (FUTimeoutSource*)src;
-//     uint64_t curr = fu_timer_get_stmp();
-
-//     if (curr < timeoutSrc->prev + timeoutSrc->dur)
-//         return false;
-//     timeoutSrc->prev = curr;
-//     return true;
-// }
-
-// static void fu_timeout_source_class_init(FUObjectClass* oc)
-// {
-// }
-// /**
-//  * @brief 创建新的定时器
-//  *
-//  * @param dur 定时器触发间隔，单位微秒
-//  * @return FUSource*
-//  */
-// FUSource* fu_timeout_source_new_microseconds(unsigned dur)
-// {
-//     static const FUSourceFuncs fns = {
-//         .check = fu_timeout_source_check
-//     };
-
-//     FUTimeoutSource* src = (FUTimeoutSource*)(fu_source_init(fu_object_new(fu_timeout_source_get_type()), &fns, NULL));
-//     src->prev = fu_timer_get_stmp();
-//     src->dur = dur;
-//     return (FUSource*)src;
-// }
 
 #else
 
@@ -139,6 +106,36 @@ uint64_t fu_timer_measure(FUTimer* obj)
 }
 
 #endif
+#endif
+
+static void fu_timer_class_init(FUObjectClass* oc)
+{
+}
+
+FUTimer* fu_timer_new()
+{
+    return (FUTimer*)fu_object_new(FU_TYPE_TIMER);
+}
+
+void fu_timer_start(FUTimer* timer)
+{
+    timer->prev = fu_os_get_stmp();
+}
+
+/**
+ * @brief 计算两个时间差
+ * 精度: 微秒
+ * @param obj
+ * @return uint64_t
+ */
+uint64_t fu_timer_measure(FUTimer* timer)
+{
+    uint64_t curr = fu_os_get_stmp();
+    uint64_t diff = curr - timer->prev;
+    timer->prev = curr;
+    return diff;
+}
+
 //
 // timeout source
 
@@ -156,7 +153,7 @@ static void fu_timeout_source_class_init(FUObjectClass* oc)
 static bool fu_timeout_source_check(FUSource* src, void* usd)
 {
     FUTimeoutSource* timeoutSrc = (FUTimeoutSource*)src;
-    uint64_t curr = fu_timer_get_stmp();
+    uint64_t curr = fu_os_get_stmp();
 
     if (curr < timeoutSrc->prev + timeoutSrc->dur)
         return false;
@@ -170,7 +167,7 @@ FUSource* fu_timeout_source_new_microseconds(unsigned dur)
         .check = fu_timeout_source_check
     };
     FUTimeoutSource* src = (FUTimeoutSource*)fu_source_init(fu_object_new(fu_timeout_source_get_type()), &fns, NULL);
-    src->prev = fu_timer_get_stmp();
+    src->prev = fu_os_get_stmp();
     src->dur = dur;
     return (FUSource*)src;
 }

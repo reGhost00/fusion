@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <time.h>
-
+// custom
+#include "memory.h"
+#include "misc.h"
 #include "rand.h"
-#include "utils.h"
 
 #define DEF_RAND_BUFF_SIZE 120
 #define DEF_RAND_SEED_SIZE 7
@@ -141,9 +142,10 @@ static void fu_rand_mt_finalize()
 }
 
 #ifdef FU_OS_WINDOW
-#include <bcrypt.h>
+// #include <bcrypt.h>
 #include <windows.h>
-
+// custom
+#include "../platform/misc.window.inner.h"
 static uint64_t* fu_rand_new_seed()
 {
     uint64_t* seed = fu_malloc(DEF_RAND_SEED_SIZE * sizeof(uint64_t));
@@ -165,12 +167,12 @@ static uint64_t* fu_rand_buff_new_os()
 {
     bool ifOpenAlg = false;
     BCRYPT_ALG_HANDLE alg;
-    fu_winapi_return_val_if_fail(!BCryptOpenAlgorithmProvider(&alg, L"RNG", NULL, 0), NULL);
+    fu_os_return_val_if_fail(!BCryptOpenAlgorithmProvider(&alg, L"RNG", NULL, 0), NULL);
 
     ifOpenAlg = true;
     size_t len = DEF_RAND_BUFF_SIZE * sizeof(uint64_t);
     uint64_t* buff = fu_malloc(len);
-    fu_winapi_goto_if_fail(!BCryptGenRandom(alg, (PUCHAR)buff, len, 0), out);
+    fu_os_goto_if_fail(!BCryptGenRandom(alg, (PUCHAR)buff, len, 0), out);
     BCryptCloseAlgorithmProvider(alg, 0);
     return buff;
 out:

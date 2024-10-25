@@ -1,18 +1,81 @@
+/**
+ * @file surface.c
+ * @author your name (you@domain.com)
+ * @brief 特定渲染 API 窗口抽象类: OpenGL
+ * @version 0.1
+ * @date 2024-10-24
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
 #ifdef FU_RENDERER_TYPE_GL
-#define GLAD_GL_IMPLEMENTATION // Necessary for headeronly version.
-#define GLFW_INCLUDE_NONE // 避免重复声明 OpenGL
-#include <GLFW/glfw3.h>
-#include <glad/gl.h>
-#include <stddef.h>
 #include <string.h>
-#define _FU_PLATFORM_GLFW_ENABLE_
-#define _FU_RENDERER_GL_ENABLE_
-#include "../_inner.h"
-#include "../core/array.h"
-#include "../core/utils.h"
-// #include "_gl.h"
-#include "gl2.h"
+// libs
+#include <glad/gl.h>
+// custom
+#include "../misc.inner.h" // for FUContext
+#include "../shader.inner.h"
+#include "misc.inner.h" // for FUCommandBuffer
+#include "platform/glfw.inner.h" // for FUWindow
+#include "platform/sdl.inner.h" // for FUWindow
 
+#define DEF_CONTEXT_CNT 5
+// FU_DEFINE_TYPE(TSurface, t_surface, FU_TYPE_OBJECT)
+
+static void t_gl_error_cb(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei len, const GLchar* msg, const void* usd)
+{
+    fu_error("OpenGL error: %s", msg);
+}
+
+void t_surface_init(FUWindow* window)
+{
+#ifdef FU_USE_GLFW
+    glfwMakeContextCurrent(window->window);
+    gladLoadGL(glfwGetProcAddress);
+    glfwSwapInterval(1);
+    glfwGetFramebufferSize(window->window, (int*)(&window->size.width), (int*)(&window->size.height));
+#elif FU_USE_SDL
+    SDL_GL_MakeCurrent(window->window, window->glCtx);
+    gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress);
+    SDL_GL_SetSwapInterval(1);
+    SDL_GL_GetDrawableSize(window->window, (int*)&window->size.width, (int*)&window->size.height);
+
+#endif
+    memset(&window->color, 0, sizeof(FUVec3));
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(t_gl_error_cb, NULL);
+}
+
+void t_surface_present(FUWindow* window)
+{
+    glClearColor(window->color.x, window->color.y, window->color.z, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ;
+    const uint32_t ctxLen = window->contexts->len;
+    const FUContext* ctx;
+    FUCommandBuffer* cmdf;
+    for (uint32_t i = 0; i < ctxLen; i++) {
+        ctx = fu_ptr_array_index(window->contexts, i);
+        cmdf = ctx->commands;
+        while (cmdf) {
+            fu_shader_program_set_mat4(cmdf->shader, "transform", 0);
+            glUseProgram(cmdf->shader->program);
+            glBindVertexArray(cmdf->VAO);
+            glDrawElements(GL_TRIANGLES, 3 * cmdf->indexCount, GL_UNSIGNED_INT, 0);
+            cmdf = cmdf->next;
+        }
+    }
+#ifdef FU_USE_GLFW
+    glfwSwapBuffers(window->window);
+#elif FU_USE_SDL
+    SDL_GL_SwapWindow(window->window);
+#else
+    fu_error("Not supported");
+#endif
+}
+
+#endif
+#ifdef ffff
 #define DEF_VERTICES_ARR_LEN 99
 #define DEF_MSG_BUFF_LEN 1600
 #define DEF_VERTEX_LEN 8
@@ -28,53 +91,6 @@ typedef struct _TShader {
     uint32_t id;
     uint32_t idx;
 } TShader;
-
-typedef enum _EVertexRaw {
-    E_VERTEX_RAW_POSITION_X,
-    E_VERTEX_RAW_POSITION_Y,
-    E_VERTEX_RAW_POSITION_Z,
-    E_VERTEX_RAW_POSITION_W,
-    E_VERTEX_RAW_COLOR_R,
-    E_VERTEX_RAW_COLOR_G,
-    E_VERTEX_RAW_COLOR_B,
-    E_VERTEX_RAW_COLOR_A,
-    E_VERTEX_RAW_TEXTURE_X,
-    E_VERTEX_RAW_TEXTURE_Y,
-    E_VERTEX_RAW_CNT
-} EVertexRaw;
-
-typedef enum _EVertexPosition {
-    E_VERTEX_POSITION_X,
-    E_VERTEX_POSITION_Y,
-    E_VERTEX_POSITION_Z,
-    E_VERTEX_POSITION_W,
-    E_VERTEX_POSITION_CNT
-} EVertexPosition;
-
-typedef enum _EVertexColor {
-    E_VERTEX_COLOR_R,
-    E_VERTEX_COLOR_G,
-    E_VERTEX_COLOR_B,
-    E_VERTEX_COLOR_A,
-    E_VERTEX_COLOR_CNT
-} EVertexColor;
-
-typedef enum _EVertexTexture {
-    E_VERTEX_TEXTURE_X,
-    E_VERTEX_TEXTURE_Y,
-    E_VERTEX_TEXTURE_CNT
-} EVertexTexture;
-
-// struct _FUGLRenderer {
-//     FUObject parent;
-//     GLFWwindow* win;
-//     FURGBA* clearColor;
-//     TVertex* fillVertiecs;
-//     TVertex* strokeVertiecs;
-//     uint32_t* fillIndices;
-//     uint32_t* strokeIndices;
-// };
-// FU_DEFINE_TYPE(FUGLRenderer, fu_gl_renderer, FU_TYPE_OBJECT)
 
 struct _FUGLSurface {
     FUObject parent;

@@ -1,14 +1,15 @@
 
 #include <stdarg.h>
-#include <stdatomic.h>
 #include <string.h>
-
+// libs
 #include <mimalloc.h>
 // custom
-#include "utils.h"
+#include "memory.h"
 #ifndef FU_NO_TRACK_MEMORY
+#include <stdatomic.h>
+// custom
+#include "platform/misc.window.inner.h"
 #include "sc_map.h"
-#include "thread.h"
 
 static struct sc_map_64 defMemoryTable;
 static atomic_uint defMemoryTableCount = 0;
@@ -103,57 +104,11 @@ void fu_free(void* p)
     sc_map_del_64(&defMemoryTable, (uintptr_t)p);
     if (sc_map_found(&defMemoryTable) && atomic_load_explicit(&defMemoryTableCount, memory_order_relaxed))
         atomic_fetch_sub_explicit(&defMemoryTableCount, 1, memory_order_relaxed);
-    // defMemoryTableCount -= 1;
     mi_free(p);
     fu_mutex_unlock(defMemoryTableMutex);
 }
-
-#else // FU_NO_TRACK_MEMORY
-#define fu_track_memory(p, size) (p)
-#endif // FU_NO_TRACK_MEMORY
-
-#ifdef FU_OS_WINDOW
-#ifndef FU_NO_DEBUG
-void fu_winapi_print_error_from_code(const char* prefix, const DWORD code)
-{
-    wchar_t* strW = NULL;
-    size_t len;
-    if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&strW, 0, NULL)) {
-        char* strU = fu_wchar_to_utf8(strW, &len);
-        fprintf(stderr, "%s %ld %s\n", prefix, code, strU);
-        LocalFree(strW);
-        fu_free(strU);
-    } else
-        fprintf(stderr, "%s %ld\n", prefix, code);
-}
-
-#endif
-
-char* fu_wchar_to_utf8(const wchar_t* wstr, size_t* len)
-{
-    if (!(*len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL)))
-        return NULL;
-    char* str = fu_track_memory(mi_malloc(*len), *len);
-    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, str, *len, NULL, NULL);
-    return str;
-}
-
-wchar_t* fu_utf8_to_wchar(const char* str, size_t* len)
-{
-    if (!(*len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0)))
-        return NULL;
-    wchar_t* wstr = fu_track_memory(mi_malloc(*len * sizeof(wchar_t)), *len * sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, *len);
-    return wstr;
-}
 #else
-#ifndef FU_NO_DEBUG
-
-void fu_winapi_print_error_from_code(const char* prefix, const int code)
-{
-    fprintf(stderr, "%s %s\n", prefix, strerror(code));
-}
-#endif
+#define fu_track_memory(p, size) (p)
 #endif
 
 /**
@@ -375,36 +330,4 @@ char* fu_strdup_printf(const char* format, ...)
     va_end(args);
 
     return buff;
-}
-
-FUError* fu_error_new_take(int code, char** msg)
-{
-    FUError* err = fu_malloc(sizeof(FUError));
-    err->message = fu_steal_pointer(msg);
-    err->code = code;
-    return err;
-}
-
-void fu_error_free(FUError* err)
-{
-    fu_free(err->message);
-    fu_free(err);
-}
-
-FUError* fu_error_new_from_code(int code)
-{
-#ifdef FU_OS_WINDOW
-    LPWSTR msgBuff = NULL;
-    size_t len = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), msgBuff, 0, NULL);
-    if (len) {
-        char* msg = fu_wchar_to_utf8(msgBuff, &len);
-        LocalFree(msgBuff);
-        if (FU_LIKELY(msg))
-            return fu_error_new_take(code, &msg);
-    }
-#endif
-    FUError* err = fu_malloc(sizeof(FUError));
-    err->message = fu_strdup("Unknown error");
-    err->code = code;
-    return err;
 }

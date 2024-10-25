@@ -38,7 +38,8 @@
 
 #include "array.h"
 #include "hash2.h"
-#include "utils.h"
+#include "memory.h"
+#include "misc.h"
 
 #define MIN_ARRAY_SIZE 16
 /**

@@ -1,6 +1,7 @@
 #ifdef FU_USE_GLFW
 #pragma once
 #include "../core/main.h"
+#include "misc.h"
 
 typedef enum _EFUKeyboardKey {
     EFU_KB_KEY_NONE = 0,
@@ -194,11 +195,12 @@ typedef struct _FUScrollEvent {
     FUOffset2 delta;
 } FUScrollEvent;
 
-uint64_t fu_window_get_type();
-typedef struct _FUWindow FUWindow;
-#define FU_TYPE_WINDOW (fu_window_get_type())
+// uint64_t fu_window_get_type();
+// typedef struct _FUWindow FUWindow;
+// #define FU_TYPE_WINDOW (fu_window_get_type())
 
 FUWindow* fu_window_new(FUApp* app, FUWindowConfig* cfg);
 void fu_window_take_source(FUWindow* win, FUSource** source);
 
+void fu_window_present(FUWindow* win);
 #endif // FU_USE_GLFW

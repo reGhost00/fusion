@@ -1,7 +1,5 @@
 #pragma once
 
-// #include "_def.h"
-#include "../renderer/gl2.h"
 #include "object.h"
 
 /** 用于给其他数据源继承 */
@@ -10,9 +8,7 @@ typedef struct _FUSource {
 } FUSource;
 uint64_t fu_source_get_type();
 #define FU_TYPE_SOURCE (fu_source_get_type())
-// // #endif
-// // #ifndef _FU_SRC_CBS_DEC_
-// // #define _FU_SRC_CBS_DEC_
+
 typedef bool (*FUSourceFuncRevBool)(FUSource* source, void* usd);
 typedef void (*FUSourceFuncRevVoid)(FUSource* source, void* usd);
 typedef bool (*FUSourceCallback)(void* usd);
@@ -32,10 +28,6 @@ typedef struct _FUApp {
 uint64_t fu_app_get_type();
 #define FU_TYPE_APP (fu_app_get_type())
 
-// #endif
-// FU_DECLARE_TYPE(FUWindow, fu_window)
-// #define FU_TYPE_WINDOW (fu_window_get_type())
-//
 // Source
 /** Use to derivable source */
 FUSource*

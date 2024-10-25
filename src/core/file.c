@@ -9,11 +9,11 @@
  *
  */
 
-#include "file.h"
-#include "main.h"
-//
 #include "../platform/vfs.linux.h"
 #include "../platform/vfs.window.h"
+#include "file.h"
+#include "main.h"
+#include "memory.h"
 #define DEF_READ_BLOCK_LEN 2'000'000
 
 struct _FUStream {
@@ -354,7 +354,7 @@ bool fu_file_stream_read_async(FUFileStream* fileStream, size_t size, FUAsyncRea
 
     fileStream->callback = callback;
     fileStream->usd = usd;
-    fu_winapi_return_val_if_fail(t_vfs_read_async(args, fu_file_stream_callback, fileStream), false);
+    fu_os_return_val_if_fail(t_vfs_read_async(args, fu_file_stream_callback, fileStream), false);
 
     // 自动清理
     FUSource* src = fu_source_new(&defAsyncSourceFuncs, fileStream);
@@ -424,7 +424,7 @@ bool fu_file_stream_read_all_async(FUFileStream* fileStream, FUAsyncReadyCallbac
 
     fileStream->callback = callback;
     fileStream->usd = usd;
-    fu_winapi_return_val_if_fail(t_vfs_read_async(args, fu_file_stream_read_all_callback, fileStream), false);
+    fu_os_return_val_if_fail(t_vfs_read_async(args, fu_file_stream_read_all_callback, fileStream), false);
 
     // 自动清理
     FUSource* src = fu_source_new(&defAsyncSourceFuncs, fileStream);
@@ -475,7 +475,7 @@ bool fu_file_stream_write_async(FUFileStream* fileStream, const void* data, size
     fileStream->callback = callback;
     fileStream->usd = usd;
 
-    fu_winapi_return_val_if_fail(t_vfs_write_async(args, fu_file_stream_callback, fileStream), false);
+    fu_os_return_val_if_fail(t_vfs_write_async(args, fu_file_stream_callback, fileStream), false);
 
     // 自动清理
     FUSource* src = fu_source_new(&defAsyncSourceFuncs, fileStream);
