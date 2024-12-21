@@ -1,0 +1,12 @@
+[submodule "libs/glfw"]
+	path = libs/glfw
+	url = https://github.com/glfw/glfw
+[submodule "libs/mimalloc"]
+	path = libs/mimalloc
+	url = https://github.com/microsoft/mimalloc.git
+[submodule "libs/cglm"]
+	path = libs/cglm
+	url = https://github.com/recp/cglm.git
+[submodule "libs/KTX-Software"]
+	path = libs/KTX-Software
+	url = https://github.com/KhronosGroup/KTX-Software.git
