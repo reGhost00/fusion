@@ -1,0 +1,10 @@
+.cache
+.vscode
+build
+
+libs/cglm
+libs/glfw
+libs/KTX-Software
+libs/mimalloc
+
+**/*.bak
