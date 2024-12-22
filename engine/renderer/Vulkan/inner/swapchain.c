@@ -74,23 +74,6 @@ bool t_surface_init(uint32_t width, uint32_t height, const char* title, VkInstan
 }
 
 #endif
-static void t_surface_update_extent(TSurface* surface, VkPhysicalDevice device)
-{
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface->surface, &surface->capabilities);
-    if (~0U > surface->capabilities.currentExtent.width && ~0U > surface->capabilities.currentExtent.height)
-        memcpy(&surface->extent, &surface->capabilities.currentExtent, sizeof(VkExtent2D));
-    else {
-        int width, height;
-#ifdef FU_USE_GLFW
-        glfwGetFramebufferSize(surface->window, &width, &height);
-#elif defined(FU_USE_SDL)
-        SDL_Vulkan_GetDrawableSize(surface->window, &width, &height);
-#endif
-        surface->extent.width = glm_clamp(width, surface->capabilities.minImageExtent.width, surface->capabilities.maxImageExtent.width);
-        surface->extent.height = glm_clamp(height, surface->capabilities.minImageExtent.height, surface->capabilities.maxImageExtent.height);
-    }
-}
-
 static bool t_swapchain_init_image_view(TSwapchain* swapchain, TDevice* device, TSurface* surface)
 {
     vkGetSwapchainImagesKHR(device->device, swapchain->swapchain, &swapchain->imageCount, NULL);
@@ -110,97 +93,80 @@ static bool t_swapchain_init_image_view(TSwapchain* swapchain, TDevice* device, 
     return true;
 }
 
-bool t_swapchain_init(VkInstance instance, TDevice* device, TSurface* surface, TSwapchain* swapchain)
+static void t_surface_update_extent(TSurface* surface, VkPhysicalDevice device)
 {
-    uint32_t formatCount, presentModeCount;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface->surface, &surface->capabilities);
+    if (~0U > surface->capabilities.currentExtent.width && ~0U > surface->capabilities.currentExtent.height)
+        memcpy(&surface->extent, &surface->capabilities.currentExtent, sizeof(VkExtent2D));
+    else {
+        int width, height;
+#ifdef FU_USE_GLFW
+        glfwGetFramebufferSize(surface->window, &width, &height);
+#elif defined(FU_USE_SDL)
+        SDL_Vulkan_GetDrawableSize(surface->window, &width, &height);
+#endif
+        surface->extent.width = glm_clamp(width, surface->capabilities.minImageExtent.width, surface->capabilities.maxImageExtent.width);
+        surface->extent.height = glm_clamp(height, surface->capabilities.minImageExtent.height, surface->capabilities.maxImageExtent.height);
+    }
+}
 
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device->physicalDevice.physicalDevice, surface->surface, &formatCount, NULL);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device->physicalDevice.physicalDevice, surface->surface, &presentModeCount, NULL);
-
-    VkSurfaceFormatKHR* formats = (VkSurfaceFormatKHR*)fu_malloc(sizeof(VkSurfaceFormatKHR) * formatCount);
-    VkPresentModeKHR* presentModes = (VkPresentModeKHR*)fu_malloc(sizeof(VkPresentModeKHR) * presentModeCount);
-
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device->physicalDevice.physicalDevice, surface->surface, &formatCount, formats);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device->physicalDevice.physicalDevice, surface->surface, &presentModeCount, presentModes);
-    t_surface_update_extent(surface, device->physicalDevice.physicalDevice);
-
+bool t_swapchain_init_full(VkInstance instance, TDevice* device, TSurface* surface, TSwapchain* swapchain, VkSurfaceFormatKHR* format, VkPresentModeKHR presentMode)
+{
+    t_surface_update_extent(surface, device->physicalDevice.physicalDevice); // for resize
     VkSwapchainCreateInfoKHR createInfo = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .surface = surface->surface,
-        .minImageCount = surface->capabilities.minImageCount + 1,
-        .imageFormat = formats->format,
-        .imageColorSpace = formats->colorSpace,
+        .minImageCount = swapchain->imageCount,
+        .imageFormat = format->format,
+        .imageColorSpace = format->colorSpace,
         .imageExtent = surface->extent,
         .imageArrayLayers = 1,
         .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .preTransform = surface->capabilities.currentTransform,
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode = VK_PRESENT_MODE_FIFO_KHR,
+        .presentMode = presentMode,
         .clipped = VK_TRUE
     };
 
-    if (0 < surface->capabilities.maxImageCount && createInfo.minImageCount > surface->capabilities.maxImageCount)
-        createInfo.minImageCount = surface->capabilities.maxImageCount;
-    memcpy(&surface->format, formats, sizeof(VkSurfaceFormatKHR));
-    for (uint32_t i = 0; i < formatCount; i++) {
-        if (VK_COLOR_SPACE_SRGB_NONLINEAR_KHR != formats[i].colorSpace)
-            continue;
-        if (VK_FORMAT_R8G8B8A8_SRGB != formats[i].format)
-            continue;
-        memcpy(&surface->format, &formats[i], sizeof(VkSurfaceFormatKHR));
-        createInfo.imageFormat = formats[i].format;
-        createInfo.imageColorSpace = formats[i].colorSpace;
-        break;
-    }
-
-    for (uint32_t i = 0; i < presentModeCount; i++) {
-        if (VK_PRESENT_MODE_MAILBOX_KHR != presentModes[i])
-            continue;
-        createInfo.presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-        surface->presentMode = createInfo.presentMode;
-        break;
-    }
-
-    bool rev = false;
-    if (FU_UNLIKELY(vkCreateSwapchainKHR(device->device, &createInfo, &defCustomAllocator, &swapchain->swapchain))) {
-        fu_error("failed to create swapchain\n");
-        goto out;
-    }
-
-    rev = t_swapchain_init_image_view(swapchain, device, surface);
-out:
-    fu_free(formats);
-    fu_free(presentModes);
-    return rev;
-}
-
-bool t_swapchain_update(TSwapchain* swapchain, TDevice* device, TSurface* surface)
-{
-    t_swapchain_destroy(swapchain, device);
-    t_surface_update_extent(surface, device->physicalDevice.physicalDevice);
-
-    const VkSwapchainCreateInfoKHR createInfo = {
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface = surface->surface,
-        .minImageCount = surface->capabilities.minImageCount + 1,
-        .imageFormat = surface->format.format,
-        .imageColorSpace = surface->format.colorSpace,
-        .imageExtent = surface->extent,
-        .imageArrayLayers = 1,
-        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .preTransform = surface->capabilities.currentTransform,
-        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode = surface->presentMode,
-        .clipped = VK_TRUE
-    };
     if (FU_UNLIKELY(vkCreateSwapchainKHR(device->device, &createInfo, &defCustomAllocator, &swapchain->swapchain))) {
         fu_error("failed to create swapchain\n");
         return false;
     }
 
     return t_swapchain_init_image_view(swapchain, device, surface);
+}
+
+bool t_swapchain_init(VkInstance instance, TDevice* device, TSurface* surface, TSwapchain* swapchain)
+{
+    TSurfaceFormat formats;
+    t_surface_format_init(device->physicalDevice.physicalDevice, surface->surface, &formats);
+    t_surface_update_extent(surface, device->physicalDevice.physicalDevice);
+    surface->format = formats.formats[0];
+    surface->presentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    swapchain->imageCount = surface->capabilities.minImageCount + 1;
+    if (0 < surface->capabilities.maxImageCount && swapchain->imageCount > surface->capabilities.maxImageCount)
+        swapchain->imageCount = surface->capabilities.maxImageCount;
+    for (uint32_t i = 0; i < formats.formatCount; i++) {
+        if (VK_COLOR_SPACE_SRGB_NONLINEAR_KHR != formats.formats[i].colorSpace)
+            continue;
+        if (VK_FORMAT_R8G8B8A8_SRGB != formats.formats[i].format)
+            continue;
+        surface->format = formats.formats[i];
+        break;
+    }
+
+    for (uint32_t i = 0; i < formats.presentModeCount; i++) {
+        if (VK_PRESENT_MODE_MAILBOX_KHR != formats.presentModes[i])
+            continue;
+        surface->presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+        break;
+    }
+
+    bool rev = t_swapchain_init_full(instance, device, surface, swapchain, &surface->format, surface->presentMode);
+    t_surface_format_destroy(&formats);
+    return rev;
 }
 
 void t_swapchain_destroy(TSwapchain* swapchain, TDevice* device)

@@ -78,7 +78,7 @@ static GLFWwindow* glfw_new_window(const char* title, uint32_t width, uint32_t h
 //
 // GLFW Event Wrap
 
-static TWindowEvent* t_window_event_new()
+static TWindowEvent* fu_window_event_new()
 {
     TWindowEvent* evt = fu_malloc0(sizeof(TWindowEvent));
     evt->next = fu_malloc0(sizeof(TWindowEvent));
@@ -88,7 +88,7 @@ static TWindowEvent* t_window_event_new()
     return evt;
 }
 
-static void t_window_event_free(TWindowEvent* evt)
+static void fu_window_event_free(TWindowEvent* evt)
 {
     fu_free(evt->next);
     fu_free(evt);
@@ -207,12 +207,12 @@ static void glfw_event_signal_wrap(FUWindow* win)
 // window
 // static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static bool t_window_event_wrap_check(FUSource* source, FUWindow* usd)
+static bool fu_window_event_wrap_check(FUSource* source, FUWindow* usd)
 {
     return !(atomic_load_explicit(&defWindowCount, memory_order_relaxed) && glfwWindowShouldClose(usd->window));
 }
 
-static bool t_window_event_wrap_cb(FUWindow* usd)
+static bool fu_window_event_wrap_cb(FUWindow* usd)
 {
     // fixme:
     // 在 linux(wsl:fedora) 平台下
@@ -226,7 +226,7 @@ static bool t_window_event_wrap_cb(FUWindow* usd)
     return false;
 }
 
-static void t_window_event_wrap_cleanup(FUSource* source, FUWindow* usd)
+static void fu_window_event_wrap_cleanup(FUSource* source, FUWindow* usd)
 {
     // 自动清理
     if (FU_LIKELY(0 < atomic_load_explicit(&defWindowCount, memory_order_relaxed)))
@@ -235,12 +235,19 @@ static void t_window_event_wrap_cleanup(FUSource* source, FUWindow* usd)
     fu_object_unref(source);
 }
 
+static bool fu_window_update_surface(FUWindow* window)
+{
+    while (glfwGetWindowAttrib(window->window, GLFW_ICONIFIED))
+        glfwWaitEvents();
+    return fu_surface_update(&window->surface, window->contexts);
+}
+
 FU_DEFINE_TYPE(FUWindow, fu_window, FU_TYPE_OBJECT)
 static void fu_window_dispose(FUObject* obj)
 {
     fu_print_func_name();
     FUWindow* win = (FUWindow*)obj;
-    t_window_event_free(win->event);
+    fu_window_event_free(win->event);
     fu_ptr_array_unref(win->contexts);
     fu_ptr_array_unref(win->sources);
     fu_surface_destroy(&win->surface);
@@ -278,7 +285,7 @@ static void fu_window_class_init(FUObjectClass* oc)
 FUWindow* fu_window_new(FUApplication* app, const char* title, uint32_t width, uint32_t height, bool resizable)
 {
     static const FUSourceFuncs defSignalWrapFns = {
-        .check = (FUSourceFunc)t_window_event_wrap_check
+        .check = (FUSourceFunc)fu_window_event_wrap_check
     };
     fu_return_val_if_fail(app, NULL);
     GLFWwindow* glfw = glfw_new_window(title, width, height, resizable);
@@ -295,14 +302,14 @@ FUWindow* fu_window_new(FUApplication* app, const char* title, uint32_t width, u
     win->app = fu_object_ref(app);
     win->contexts = fu_ptr_array_new_full(DEF_USER_SOURCE_CNT, (FUNotify)fu_object_unref);
     win->sources = fu_ptr_array_new_full(DEF_USER_SOURCE_CNT, (FUNotify)fu_source_destroy);
-    win->event = t_window_event_new();
+    win->event = fu_window_event_new();
 
     glfw_event_signal_wrap(win);
     if (atomic_fetch_add_explicit(&defWindowCount, 1, memory_order_relaxed))
         return win;
 
     FUSource* src = (FUSource*)fu_source_new(&defSignalWrapFns, win);
-    fu_source_set_callback(src, (FUSourceCallback)t_window_event_wrap_cb, win);
+    fu_source_set_callback(src, (FUSourceCallback)fu_window_event_wrap_cb, win);
     t_main_loop_attach(app->loop, (TSource*)src);
     fu_object_set_user_data(app, "signal-wrap", src, (FUNotify)fu_object_unref);
     return win;
@@ -341,7 +348,14 @@ bool fu_window_present(FUWindow* win)
     FUContext* ctx;
     for (uint32_t i = 0; i < win->contexts->len; i++) {
         ctx = fu_ptr_array_index(win->contexts, i);
-        t_context_present(ctx);
+        if (FU_LIKELY(fu_context_present(ctx)))
+            continue;
+        if (FU_LIKELY(fu_surface_check_and_exchange(&win->surface, false))) {
+            if (FU_LIKELY(fu_window_update_surface(win)))
+                continue;
+        }
+        fu_error("Failed to present or update surface\n");
+        return false;
     }
     return true;
     // t_surface_present(win->surface, ctx);

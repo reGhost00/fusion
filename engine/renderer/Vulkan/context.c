@@ -11,38 +11,38 @@
 
 #include "misc.inner.h"
 
-typedef struct _TPipelineInitArgs {
-    FUContextArgs ctx;
-    FUShaderGroup* shaders;
-    TDescriptorArgs2* desc;
-} TPipelineInitArgs;
+// typedef struct _TPipelineInitArgs {
+//     FUContextArgs ctx;
+//     FUShaderGroup* shaders;
+//     TDescriptorArgs2* desc;
+// } TPipelineInitArgs;
 
-struct _FUContext {
-    FUObject parent;
-    TPipelineInitArgs* initArgs;
-    fu_surface_t* surface;
-    TPipeline pipeline;
-    TPipelineIndices pipelineIndices;
-    TUniformBuffer vertices, indices;
-    /** user data */
-    TUniformBuffer* uniformBuffers;
-    /** multi sampling */
-    TImageBuffer* colorBuffer;
-    /** depth test */
-    TImageBuffer* depthBuffer;
-    /** user texture */
-    TImageBuffer* textureBuffers;
-    VkFramebuffer* framebuffers;
-    VkCommandPool pool;
-    VkCommandBuffer* commandBuffers;
-    VkSemaphore *imageAvailableSemaphores, *renderFinishedSemaphores;
-    VkFence* inFlightFences;
-    VkClearValue* clearValues;
-    uint32_t uniformBufferCount, imageBufferCount, attachmentCount, indexCount;
-};
+// struct _FUContext {
+//     FUObject parent;
+//     TPipelineInitArgs* initArgs;
+//     fu_surface_t* surface;
+//     TPipeline pipeline;
+//     TPipelineIndices pipelineIndices;
+//     TUniformBuffer vertices, indices;
+//     /** user data */
+//     TUniformBuffer* uniformBuffers;
+//     /** multi sampling */
+//     TImageBuffer* colorBuffer;
+//     /** depth test */
+//     TImageBuffer* depthBuffer;
+//     /** user texture */
+//     TImageBuffer* textureBuffers;
+//     VkFramebuffer* framebuffers;
+//     VkCommandPool pool;
+//     VkCommandBuffer* commandBuffers;
+//     VkSemaphore *imageAvailableSemaphores, *renderFinishedSemaphores;
+//     VkFence* inFlightFences;
+//     VkClearValue* clearValues;
+//     uint32_t uniformBufferCount, imageBufferCount, attachmentCount, indexCount;
+// };
 FU_DEFINE_TYPE(FUContext, fu_context, FU_TYPE_OBJECT)
 
-void fu_pipeline_init_args_free(TPipelineInitArgs* args)
+static void fu_pipeline_init_args_free(TPipelineInitArgs* args)
 {
     if (!args)
         return;
@@ -52,7 +52,7 @@ void fu_pipeline_init_args_free(TPipelineInitArgs* args)
     fu_free(args);
 }
 
-TPipelineInitArgs* fu_pipeline_init_args_new(FUShaderGroup* shaders, const FUContextArgs* args)
+static TPipelineInitArgs* fu_pipeline_init_args_new(FUShaderGroup* shaders, const FUContextArgs* args)
 {
     TPipelineInitArgs* rev = fu_malloc0(sizeof(TPipelineInitArgs));
     rev->shaders = fu_malloc(sizeof(FUShaderGroup));
@@ -66,6 +66,16 @@ TPipelineInitArgs* fu_pipeline_init_args_new(FUShaderGroup* shaders, const FUCon
 
 //
 //  pipeline
+static bool fu_context_init_frameBuffers(FUContext* ctx, VkCommandBuffer* commandBuffers)
+{
+    VkCommandBufferAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandPool = ctx->pool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = ctx->surface->swapchain.imageCount
+    };
+    return !vkAllocateCommandBuffers(ctx->surface->device.device, &allocInfo, commandBuffers);
+}
 
 /** initialize frameBuffers & renderPass */
 static bool fu_context_init_frames(FUContext* ctx)
@@ -172,7 +182,7 @@ static bool fu_context_init_frames(FUContext* ctx)
     for (uint32_t i = 0; i < sf->swapchain.imageCount; i++) {
         framebufferAttachments[frameAttachmentIndex] = sf->swapchain.images[i].view;
         if (FU_UNLIKELY(vkCreateFramebuffer(dev, &framebufferInfo, &defCustomAllocator, framebuffers + i))) {
-            fu_error("Failed to create framebuffer\n");
+            fu_error("Failed to create framebuffer[%u]\n", i);
             t_attachment_args_free_all(attr);
             fu_free(framebuffers);
             return false;
@@ -204,21 +214,14 @@ static bool fu_context_init_buffers(FUContext* ctx)
         return false;
     }
 
-    VkCommandBufferAllocateInfo allocInfo = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .commandPool = ctx->pool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = sf->swapchain.imageCount
-    };
     VkCommandBuffer* commandBuffers = fu_malloc(sizeof(VkCommandBuffer) * sf->swapchain.imageCount);
-    if (FU_UNLIKELY(vkAllocateCommandBuffers(dev, &allocInfo, commandBuffers))) {
-        fu_error("Failed to allocate command buffers\n");
-        fu_free(commandBuffers);
-        return false;
+    if (FU_LIKELY(fu_context_init_frameBuffers(ctx, commandBuffers))) {
+        ctx->commandBuffers = fu_steal_pointer(&commandBuffers);
+        return true;
     }
-
-    ctx->commandBuffers = fu_steal_pointer(&commandBuffers);
-    return true;
+    fu_error("Failed to allocate command buffers\n");
+    fu_free(commandBuffers);
+    return false;
 }
 
 static bool fu_context_init_input_stage(FUContext* context)
@@ -417,6 +420,7 @@ static void fu_context_dispose(FUObject* obj)
     fu_print_func_name();
     FUContext* ctx = (FUContext*)obj;
     VkDevice dev = ctx->surface->device.device;
+    vkDeviceWaitIdle(dev);
     fu_pipeline_init_args_free(ctx->initArgs);
     vkDestroyRenderPass(dev, ctx->pipeline.renderPass, &defCustomAllocator);
     for (uint32_t i = 0; i < ctx->surface->swapchain.imageCount; i++) {
@@ -527,7 +531,7 @@ bool fu_context_update_input_data(FUContext* ctx, uint32_t vertexSize, const flo
     return true;
 }
 
-bool t_context_present(FUContext* ctx)
+bool fu_context_present(FUContext* ctx)
 {
     static uint32_t imageIndex, frameIndex = 0;
     VkDevice dev = ctx->surface->device.device;
@@ -589,16 +593,7 @@ bool t_context_present(FUContext* ctx)
     if (!frameIndex) {
         vkDeviceWaitIdle(dev);
         vkResetCommandPool(dev, ctx->pool, 0);
-        VkCommandBufferAllocateInfo allocInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .commandPool = ctx->pool,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = sc->imageCount
-        };
-        if (FU_UNLIKELY(vkAllocateCommandBuffers(dev, &allocInfo, ctx->commandBuffers))) {
-            fu_error("Failed to allocate command buffers\n");
-            return false;
-        }
+        return fu_context_init_frameBuffers(ctx, ctx->commandBuffers);
     }
     return true;
 }
@@ -620,6 +615,53 @@ bool fu_window_add_context(FUWindow* win, FUContext* ctx)
         return true;
     }
     return false;
+}
+
+/**
+ * @brief for window resize
+ *
+ * @param ctx
+ * @param surface
+ * @return true
+ * @return false
+ */
+bool fu_context_init_framebuffers(FUContext* ctx, fu_surface_t* surface)
+{
+    VkImageView attachments[3];
+    uint32_t frameAttachmentIndex = 0;
+    VkFramebufferCreateInfo framebufferInfo = {
+        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .renderPass = ctx->pipeline.renderPass,
+        .attachmentCount = 1,
+        .pAttachments = attachments,
+        .width = surface->surface.extent.width,
+        .height = surface->surface.extent.height,
+        .layers = 1
+    };
+
+    if (ctx->colorBuffer) {
+        if (ctx->depthBuffer) {
+            attachments[1] = ctx->depthBuffer->image.view;
+            framebufferInfo.attachmentCount += 1;
+            frameAttachmentIndex += 1;
+        }
+        attachments[0] = ctx->colorBuffer->image.view;
+        framebufferInfo.attachmentCount += 1;
+        frameAttachmentIndex += 1;
+    } else if (ctx->depthBuffer) {
+        attachments[1] = ctx->depthBuffer->image.view;
+        framebufferInfo.attachmentCount = 2;
+    }
+
+    for (uint32_t i = 0; i < surface->swapchain.imageCount; i++) {
+        attachments[frameAttachmentIndex] = surface->swapchain.images[i].view;
+        if (FU_UNLIKELY(vkCreateFramebuffer(surface->device.device, &framebufferInfo, &defCustomAllocator, ctx->framebuffers + i))) {
+            fu_error("Failed to create framebuffer[%u]\n", i);
+            return false;
+        }
+    }
+
+    return true;
 }
 
 #endif

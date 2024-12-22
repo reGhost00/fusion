@@ -28,8 +28,8 @@ typedef struct _FUSurfaceArgs {
 
 void fu_surface_destroy(FUSurface* sf);
 bool fu_surface_init(RawWindow* window, uint32_t width, uint32_t height, FUSurface* sf);
-
-// bool t_surface_init_buffers(FUSurface* sf, FUContext* ctx);
+bool fu_surface_check_and_exchange(FUSurface* surface, const bool outOfDate);
+bool fu_surface_update(FUSurface* surface, FUPtrArray* contexts);
 
 // bool t_surface_init_command(FUSurface* sf, FUContext* ctx);
 // bool t_surface_init_descriptor(FUSurface* sf, FUContext* ctx);
@@ -37,7 +37,7 @@ bool fu_surface_init(RawWindow* window, uint32_t width, uint32_t height, FUSurfa
 // // bool t_surface_present(FUSurface* surface, FUContext* ctx);
 // bool t_surface_valid_check_and_exchange(FUSurface* sf, const bool outOfDate);
 
-bool t_context_present(FUContext* ctx);
+bool fu_context_present(FUContext* ctx);
 // bool fu_context_init_buffers__framebuffer(FUContext* ctx, FUSurface* sf);
 // bool fu_context_init_buffers(FUContext* ctx, FUSurface* sf);
 // bool fu_context_init_command(FUContext* ctx, FUSurface* sf);

@@ -323,6 +323,14 @@ static void t_physical_device_init_with(TPhysicalDevice* target, TPhysicalDevice
     target->transferQueueFamilies = (TQueueFamilyProperties*)fu_memdup(source->transferQueueFamilies, sizeof(TQueueFamilyProperties) * source->transferQueueFamilyCount);
 }
 
+void t_device_destroy(TDevice* device)
+{
+    vk_allocator_destroy();
+    vkDestroyDevice(device->device, &defCustomAllocator);
+    t_physical_device_free_queue_family(&device->physicalDevice);
+    fu_free(device->physicalDevice.extensions);
+}
+
 bool t_device_init(VkInstance instance, VkSurfaceKHR surface, TDevice* device)
 {
     const char* const defDeviceExtensions[] = {
@@ -424,11 +432,4 @@ out:
     return rev;
 }
 
-void t_device_destroy(TDevice* device)
-{
-    vk_allocator_destroy();
-    vkDestroyDevice(device->device, &defCustomAllocator);
-    t_physical_device_free_queue_family(&device->physicalDevice);
-    fu_free(device->physicalDevice.extensions);
-}
 #endif

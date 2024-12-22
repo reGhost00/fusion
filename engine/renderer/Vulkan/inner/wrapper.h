@@ -118,6 +118,12 @@ typedef struct _TDevice {
     uint32_t queueFamilyIndex;
 } TDevice;
 
+typedef struct _TSurfaceFormat {
+    VkSurfaceFormatKHR* formats;
+    VkPresentModeKHR* presentModes;
+    uint32_t formatCount, presentModeCount;
+} TSurfaceFormat;
+
 //
 //  vulkan surface
 typedef struct _TSurface {
@@ -130,6 +136,9 @@ typedef struct _TSurface {
 } TSurface;
 bool t_surface_init(uint32_t width, uint32_t height, const char* title, VkInstance instance, TSurface* surface);
 void t_surface_destroy(TSurface* surface, VkInstance instance);
+
+void t_surface_format_init(VkPhysicalDevice device, VkSurfaceKHR surface, TSurfaceFormat* formats);
+void t_surface_format_destroy(TSurfaceFormat* formats);
 //
 //  vulkan swapchain
 typedef struct _TSwapchain {
@@ -139,7 +148,7 @@ typedef struct _TSwapchain {
     bool outOfDate;
 } TSwapchain;
 bool t_swapchain_init(VkInstance instance, TDevice* device, TSurface* surface, TSwapchain* swapchain);
-bool t_swapchain_update(TSwapchain* swapchain, TDevice* device, TSurface* surface);
+bool t_swapchain_init_full(VkInstance instance, TDevice* device, TSurface* surface, TSwapchain* swapchain, VkSurfaceFormatKHR* format, VkPresentModeKHR presentMode);
 void t_swapchain_destroy(TSwapchain* swapchain, TDevice* device);
 //
 //  vulkan description
