@@ -17,8 +17,10 @@ FU_DECLARE_TYPE(FUContext, fu_context)
 #define FU_TYPE_CONTEXT (fu_context_get_type())
 
 FUContext* fu_context_new_take(const FUWindow* win, FUShaderGroup* shaders, const FUContextArgs* args);
-bool fu_context_update_input_data(FUContext* ctx, uint32_t vertexSize, const float* vertices, uint32_t indexSize, const uint32_t* indices);
-
+int fu_context_add_uniform_descriptor(FUContext* ctx, const uint32_t size, FUShaderStageFlags stage);
+int fu_context_add_sampler_descriptor(FUContext* ctx, const uint32_t width, const uint32_t height, const uint8_t* data);
+bool fu_context_update_input_data2(FUContext* ctx, uint64_t vertexSize, const float* vertices, uint64_t indexSize, const uint32_t* indices);
+void fu_context_update_uniform_buffer(FUContext* ctx, const uint32_t index, void* data, const VkDeviceSize size);
 #ifdef fesd
 typedef struct _FUWindow FUWindow;
 

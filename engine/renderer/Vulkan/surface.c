@@ -102,7 +102,7 @@ static void fu_surface_cleanup(fu_surface_t* sf, FUPtrArray* contexts)
     for (uint32_t i = 0; i < contexts->len; i++) {
         ctx = fu_ptr_array_index(contexts, i);
         for (uint32_t j = 0; j < sf->swapchain.imageCount; j++)
-            vkDestroyFramebuffer(T_DEVICE(sf), ctx->framebuffers[j], &defCustomAllocator);
+            vkDestroyFramebuffer(T_DEVICE(sf), ctx->frame.buffers[j], &defCustomAllocator);
     }
     for (uint32_t i = 0; i < sf->swapchain.imageCount; i++)
         vkDestroyImageView(T_DEVICE(sf), sf->swapchain.images[i].view, &defCustomAllocator);

@@ -323,25 +323,6 @@ void fu_window_take_source(FUWindow* win, FUSource** source)
     t_main_loop_attach(win->app->loop, src);
 }
 
-// bool fu_window_add_context(FUWindow* win, FUContext* ctx)
-// {
-//     fu_print_func_name();
-//     //  初始化 image buffer 时需要命令缓冲用于复制纹理数据
-//     //  保持此初始化顺序
-//     // if (FU_UNLIKELY(!fu_context_init_command(ctx, win->surface)))
-//     //     return false;
-//     // if (FU_UNLIKELY(!fu_context_init_buffers(ctx, win->surface)))
-//     //     return false;
-//     // if (FU_UNLIKELY(!fu_context_init_descriptor(ctx, win->surface)))
-//     //     return false;
-//     // if (FU_LIKELY(fu_context_init_synchronization_objects(ctx, win->surface))) {
-//     //     fu_ptr_array_push(win->contexts, fu_object_ref(ctx));
-//     //     fu_context_init_finish(ctx);
-//     //     return true;
-//     // }
-//     return false;
-// }
-
 bool fu_window_present(FUWindow* win)
 {
     fu_return_val_if_fail(win, false);
@@ -358,7 +339,6 @@ bool fu_window_present(FUWindow* win)
         return false;
     }
     return true;
-    // t_surface_present(win->surface, ctx);
 }
 
 #endif

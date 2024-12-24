@@ -207,7 +207,7 @@ TCommandBuffer* vk_uniform_buffer_copy(VkCommandPool commandPool, VkQueue queue,
     vkCmdCopyBuffer(cmdf->buffer, src->buffer, dst->buffer, 1, &copyRegion);
     return vk_command_buffer_submit_free(cmdf, queue, fence);
 }
-
+#ifdef fsdfe
 TCommandBuffer* vk_uniform_buffer_copy_to_image(VkCommandPool commandPool, VkQueue queue, TImageBuffer* dst, TUniformBuffer* src, VkFence fence)
 {
     TCommandBuffer* cmdf = vk_command_buffer_new_once(defAlloc.device, commandPool);
@@ -225,7 +225,7 @@ TCommandBuffer* vk_uniform_buffer_copy_to_image(VkCommandPool commandPool, VkQue
     vkCmdCopyBufferToImage(cmdf->buffer, src->buffer, dst->buff.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
     return vk_command_buffer_submit_free(cmdf, queue, fence);
 }
-
+#endif
 //
 //  image
 
@@ -258,6 +258,7 @@ bool vk_image_view_init(VkDevice device, VkFormat format, VkImage image, VkImage
 
 bool vk_image_buffer_init(VkImageUsageFlags usage, VmaAllocationCreateFlags flags, VkFormat format, VkImageAspectFlags aspect, uint32_t levels, VkSampleCountFlagBits samples, TImageBuffer* tar)
 {
+#ifdef fsdf
     VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
@@ -293,6 +294,7 @@ bool vk_image_buffer_init(VkImageUsageFlags usage, VmaAllocationCreateFlags flag
     tar->layout = VK_IMAGE_LAYOUT_UNDEFINED;
     tar->format = format;
     tar->levels = levels;
+#endif
     return true;
 }
 

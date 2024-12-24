@@ -55,6 +55,7 @@ void vk_uniform_buffer_free(TUniformBuffer* buff);
 bool vk_uniform_buffer_init(VkDeviceSize size, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags, TUniformBuffer* tar);
 TUniformBuffer* vk_uniform_buffer_new(VkDeviceSize size, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags);
 TCommandBuffer* vk_uniform_buffer_copy(TUniformBuffer* src, VkBuffer dst, VkCommandPool commandPool, VkQueue queue, VkFence fence);
+TCommandBuffer* vk_uniform_buffer_copy_full(TUniformBuffer* src, VkDeviceSize srcOffset, VkBuffer dst, VkDeviceSize dstOffset, VkCommandPool commandPool, VkQueue queue, VkFence fence);
 
 typedef struct _TImage {
     VkImage image;
@@ -74,7 +75,9 @@ typedef struct _TImageBuffer {
 bool vk_image_view_init(VkDevice device, VkFormat format, VkImage image, VkImageAspectFlags aspect, uint32_t levels, VkImageView* view);
 
 void vk_image_buffer_free(TImageBuffer* buff);
+void vk_image_buffer_destroy(TImageBuffer* buff);
 TImageBuffer* vk_image_buffer_new(VkExtent3D* extent, VkImageUsageFlags usage, VmaAllocationCreateFlags flags, VkFormat format, VkImageAspectFlags aspect, uint32_t levels, VkSampleCountFlagBits samples);
+bool vk_image_buffer_init(VkExtent3D* extent, VkImageUsageFlags usage, VmaAllocationCreateFlags flags, VkFormat format, VkImageAspectFlags aspect, uint32_t levels, VkSampleCountFlagBits samples, TImageBuffer* tar);
 TCommandBuffer* vk_image_buffer_transition_layout(TImageBuffer* image, VkImageLayout layout, VkCommandPool pool, VkQueue queue, VkFence fence);
 // void vk_image_buffer_destroy(TImageBuffer* buff);
 // bool vk_image_view_init(VkDevice device, VkFormat format, VkImage image, VkImageAspectFlags aspect, uint32_t levels, VkImageView* view);
@@ -83,10 +86,10 @@ TCommandBuffer* vk_image_buffer_transition_layout(TImageBuffer* image, VkImageLa
 
 // void vk_command_buffer_free(TCommandBuffer* cmdf);
 // TCommandBuffer* vk_image_buffer_transition_layout(TImageBuffer* image, VkCommandPool pool, VkQueue queue, VkImageLayout layout, VkFence fence);
-// TCommandBuffer* vk_uniform_buffer_copy_to_image(VkCommandPool commandPool, VkQueue queue, TImageBuffer* dst, TUniformBuffer* src, VkFence fence);
+TCommandBuffer* vk_uniform_buffer_copy_to_image(TUniformBuffer* src, TImageBuffer* dst, VkCommandPool commandPool, VkQueue queue, VkFence fence);
 // TCommandBuffer* vk_image_buffer_generate_mipmaps(TImageBuffer* image, VkCommandPool pool, VkQueue queue, VkFence fence);
 
-// bool vk_sampler_init(VkFilter filter, VkSamplerMipmapMode mipmap, VkSamplerAddressMode addr, uint32_t maxLod, VkSampler* sampler);
+bool vk_sampler_init(VkFilter filter, VkSamplerMipmapMode mipmap, VkSamplerAddressMode addr, uint32_t maxLod, VkSampler* sampler);
 //
 //  vulkan device
 typedef struct _TQueueFamilyProperties {
@@ -175,23 +178,24 @@ typedef struct _TDescriptorArgs2 {
     VkDescriptorSetLayoutBinding binding;
     VkDescriptorPoolSize size;
     VkWriteDescriptorSet write;
-    uint32_t bufferIndex;
+    VkDescriptorBufferInfo bufferInfo;
+    VkDescriptorImageInfo imageInfo;
 } TDescriptorArgs2;
 
-typedef union _TWriteDescriptorSetInfo {
-    VkDescriptorBufferInfo* bufferInfo;
-    VkDescriptorImageInfo* imageInfo;
-} TWriteDescriptorSetInfo;
+// typedef union _TWriteDescriptorSetInfo {
+//     VkDescriptorBufferInfo* bufferInfo;
+//     VkDescriptorImageInfo* imageInfo;
+// } TWriteDescriptorSetInfo;
 
-typedef struct _TDescriptor {
-    VkDescriptorSet* sets;
-    VkDescriptorSetLayout layout;
-    VkDescriptorPool pool;
-} TDescriptor;
+// typedef struct _TDescriptor {
+//     VkDescriptorSet* sets;
+//     VkDescriptorSetLayout layout;
+//     VkDescriptorPool pool;
+// } TDescriptor;
 
 typedef void (*TWriteDescriptorSetUpdate)(VkWriteDescriptorSet* info, uint32_t index, void* usd);
 // TDescriptorArgs* vk_descriptor_args_new(uint32_t framebufferCount, uint32_t descriptorCount, ...);
-TDescriptorArgs2* t_descriptor_args_prepare(TDescriptorArgs2* prev, uint32_t count, VkDescriptorType type, VkShaderStageFlags stage);
+TDescriptorArgs2* t_descriptor_args_prepare(TDescriptorArgs2* prev, VkDeviceSize size, uint32_t count, VkDescriptorType type, VkShaderStageFlags stage);
 // void vk_descriptor_args_free(TDescriptorArgs* args);
 void t_descriptor_args_free_all(TDescriptorArgs2* args);
 
@@ -199,7 +203,7 @@ void t_descriptor_args_free_all(TDescriptorArgs2* args);
 // void vk_descriptor_args_update_info(TDescriptorArgs* args, ...);
 
 // bool t_descriptor_init(VkDevice device, TDescriptorArgs* args, TDescriptor* descriptor, TWriteDescriptorSetUpdate fnUpdate, void* usd);
-void t_descriptor_destroy(TDescriptor* descriptor, VkDevice device);
+// void t_descriptor_destroy(TDescriptor* descriptor, VkDevice device);
 
 //
 //  vulkan pipeline

@@ -337,7 +337,7 @@ bool t_device_init(VkInstance instance, VkSurfaceKHR surface, TDevice* device)
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
         VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME,
-        VK_EXT_HOST_IMAGE_COPY_EXTENSION_NAME,
+        // VK_EXT_HOST_IMAGE_COPY_EXTENSION_NAME,
         VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME,
     };
     //  1：枚举所有物理设备，查询其支持的操作和检查是否支持呈现
@@ -375,15 +375,9 @@ bool t_device_init(VkInstance instance, VkSurfaceKHR surface, TDevice* device)
         .memoryPriority = VK_TRUE
     };
 
-    VkPhysicalDeviceHostImageCopyFeaturesEXT hostImageCopyFeatures = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_FEATURES_EXT,
-        .pNext = &memoryPriorityFeatures,
-        .hostImageCopy = VK_TRUE
-    };
-
     VkPhysicalDeviceGraphicsPipelineLibraryFeaturesEXT graphicsPipelineLibraryFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GRAPHICS_PIPELINE_LIBRARY_FEATURES_EXT,
-        .pNext = &hostImageCopyFeatures,
+        .pNext = &memoryPriorityFeatures,
         .graphicsPipelineLibrary = VK_TRUE
     };
 

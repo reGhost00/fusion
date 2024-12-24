@@ -177,7 +177,9 @@ void vk_uniform_buffer_destroy(TUniformBuffer* buff)
 
 void vk_uniform_buffer_free(TUniformBuffer* buff)
 {
-    vmaDestroyBuffer(defAlloc.defAllocator, buff->buffer, buff->alloc);
+    if (!buff)
+        return;
+    vk_uniform_buffer_destroy(buff);
     fu_free(buff);
 }
 
@@ -212,14 +214,23 @@ TUniformBuffer* vk_uniform_buffer_new(VkDeviceSize size, VkBufferUsageFlags usag
     return NULL;
 }
 
-TCommandBuffer* vk_uniform_buffer_copy(TUniformBuffer* src, VkBuffer dst, VkCommandPool commandPool, VkQueue queue, VkFence fence)
+TCommandBuffer* vk_uniform_buffer_copy_full(TUniformBuffer* src, VkDeviceSize srcOffset, VkBuffer dst, VkDeviceSize dstOffset, VkCommandPool commandPool, VkQueue queue, VkFence fence)
 {
     TCommandBuffer* cmdf = vk_command_buffer_new_once(defAlloc.device, commandPool);
     if (!cmdf)
         return NULL;
-    VkBufferCopy copyRegion = { .size = src->allocInfo.size };
+    VkBufferCopy copyRegion = {
+        .srcOffset = srcOffset,
+        .dstOffset = dstOffset,
+        .size = src->allocInfo.size
+    };
     vkCmdCopyBuffer(cmdf->buffer, src->buffer, dst, 1, &copyRegion);
     return vk_command_buffer_submit_free(cmdf, queue, fence);
+}
+
+TCommandBuffer* vk_uniform_buffer_copy(TUniformBuffer* src, VkBuffer dst, VkCommandPool commandPool, VkQueue queue, VkFence fence)
+{
+    return vk_uniform_buffer_copy_full(src, 0, dst, 0, commandPool, queue, fence);
 }
 
 TCommandBuffer* vk_uniform_buffer_copy_to_image(TUniformBuffer* src, TImageBuffer* dst, VkCommandPool commandPool, VkQueue queue, VkFence fence)
@@ -227,15 +238,14 @@ TCommandBuffer* vk_uniform_buffer_copy_to_image(TUniformBuffer* src, TImageBuffe
     TCommandBuffer* cmdf = vk_command_buffer_new_once(defAlloc.device, commandPool);
     if (!cmdf)
         return NULL;
-    VkImageSubresourceLayers subresource = {
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        .layerCount = 1
-    };
-    VkExtent3D extent = { .width = dst->extent.width, .height = dst->extent.height, .depth = 1 };
+    // VkImageSubresourceLayers subresource = ;
     VkBufferImageCopy copyRegion = {
-        .imageSubresource = subresource,
-        .imageExtent = extent
+        .imageSubresource = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .layerCount = 1 },
+        .imageExtent = { .depth = 1 }
     };
+    memcpy(&copyRegion.imageExtent, &dst->extent, sizeof(VkExtent2D));
     vkCmdCopyBufferToImage(cmdf->buffer, src->buffer, dst->image.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
     return vk_command_buffer_submit_free(cmdf, queue, fence);
 }
@@ -272,6 +282,7 @@ bool vk_image_view_init(VkDevice device, VkFormat format, VkImage image, VkImage
 
 bool vk_image_buffer_init(VkExtent3D* extent, VkImageUsageFlags usage, VmaAllocationCreateFlags flags, VkFormat format, VkImageAspectFlags aspect, uint32_t levels, VkSampleCountFlagBits samples, TImageBuffer* tar)
 {
+    fu_return_val_if_fail(extent->width && extent->height && levels, NULL);
     VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
@@ -301,60 +312,13 @@ bool vk_image_buffer_init(VkExtent3D* extent, VkImageUsageFlags usage, VmaAlloca
         return false;
     }
 
+    memcpy(&tar->extent, extent, sizeof(VkExtent2D));
     tar->layout = VK_IMAGE_LAYOUT_UNDEFINED;
     tar->format = format;
     tar->levels = levels;
     return true;
 }
-#ifdef vdse
-bool vk_image_buffer_init_from_data(const uint8_t* data, const uint32_t width, const uint32_t height, uint32_t levels, VkSampleCountFlagBits samples, TImageBuffer* tar)
-{
-    tar->extent.width = width;
-    tar->extent.height = height;
-    if (FU_UNLIKELY(!vk_image_buffer_init(VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT, VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, levels, samples, tar)))
-        return false;
 
-    VkHostImageLayoutTransitionInfoEXT transitionInfo = {
-        .sType = VK_STRUCTURE_TYPE_HOST_IMAGE_LAYOUT_TRANSITION_INFO_EXT,
-        .image = tar->buff.image,
-        .oldLayout = tar->layout,
-        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        .subresourceRange = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .levelCount = levels,
-            .layerCount = 1 }
-    };
-
-    if (FU_UNLIKELY(vkTransitionImageLayoutEXT(defAlloc.device, 1, &transitionInfo))) {
-        fu_error("Failed to transition image layout!\n");
-        vk_image_buffer_destroy(tar);
-        return false;
-    }
-
-    VkMemoryToImageCopyEXT mipCopy = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_TO_IMAGE_COPY_EXT,
-        .pHostPointer = data,
-        .imageSubresource = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .layerCount = 1 },
-        .imageExtent = { .width = tar->extent.width, .height = tar->extent.height, .depth = 1 },
-    };
-    VkCopyMemoryToImageInfoEXT copyInfo = {
-        .sType = VK_STRUCTURE_TYPE_COPY_MEMORY_TO_IMAGE_INFO_EXT,
-        .dstImage = tar->buff.image,
-        .dstImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        .regionCount = 1,
-        .pRegions = &mipCopy
-    };
-
-    if (FU_UNLIKELY(vkCopyMemoryToImageEXT(defAlloc.device, &copyInfo))) {
-        fu_error("Failed to copy memory to image\n");
-        vk_image_buffer_destroy(tar);
-        return false;
-    }
-    return true;
-}
-#endif
 TImageBuffer* vk_image_buffer_new(VkExtent3D* extent, VkImageUsageFlags usage, VmaAllocationCreateFlags flags, VkFormat format, VkImageAspectFlags aspect, uint32_t levels, VkSampleCountFlagBits samples)
 {
     fu_return_val_if_fail(extent->width && extent->height && levels, NULL);

@@ -68,14 +68,16 @@ void t_descriptor_args_free_all(TDescriptorArgs2* args)
     }
 }
 
-TDescriptorArgs2* t_descriptor_args_prepare(TDescriptorArgs2* prev, uint32_t count, VkDescriptorType type, VkShaderStageFlags stage)
+TDescriptorArgs2* t_descriptor_args_prepare(TDescriptorArgs2* prev, VkDeviceSize size, uint32_t count, VkDescriptorType type, VkShaderStageFlags stage)
 {
     fu_return_val_if_fail(count, NULL);
     TDescriptorArgs2* args = fu_malloc0(sizeof(TDescriptorArgs2));
     if (prev) {
         args->next = prev;
-        args->binding.binding = prev->binding.binding + 1;
+        args->binding.binding = 1 + prev->binding.binding;
+        args->bufferInfo.offset = prev->bufferInfo.offset + prev->bufferInfo.range;
     }
+    args->bufferInfo.range = size;
 
     args->binding.descriptorType = type;
     args->binding.descriptorCount = 1;
@@ -88,7 +90,8 @@ TDescriptorArgs2* t_descriptor_args_prepare(TDescriptorArgs2* prev, uint32_t cou
     args->write.dstBinding = args->binding.binding;
     args->write.descriptorCount = 1;
     args->write.descriptorType = type;
-
+    args->write.pBufferInfo = &args->bufferInfo;
+    args->write.pImageInfo = &args->imageInfo;
     return args;
 }
 #ifdef fsdve

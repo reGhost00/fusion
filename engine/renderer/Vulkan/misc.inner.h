@@ -20,28 +20,50 @@ typedef struct _TPipelineInitArgs {
     TDescriptorArgs2* desc;
 } TPipelineInitArgs;
 
+typedef struct _TDescriptor {
+    VkDescriptorSetLayout layout;
+    VkDescriptorPool pool;
+    VkDescriptorSet* sets;
+    uint64_t* offsets;
+    uint64_t* ranges;
+    uint64_t count, size;
+} TDescriptor;
+
+typedef struct _TBuffer {
+    TUniformBuffer vertices;
+    TUniformBuffer uniforms;
+    TImageBuffer* images;
+    /** multi sampling */
+    TImageBuffer* color;
+    /** depth test */
+    TImageBuffer* depth;
+    VkSampler sampler;
+    VkCommandBuffer* commands;
+    uint64_t vertexSize, indexSize, indexCount, uniformCount, imageCount, uniformSize;
+} TBuffer;
+
+typedef struct _TFrame {
+    VkFramebuffer* buffers;
+    VkClearValue* clearValues;
+    VkCommandPool commandPool;
+    uint64_t attachmentCount, currFrame;
+} TFrame;
+
+typedef struct _TSynchronizationObjects {
+    VkSemaphore *available, *finished;
+    VkFence* inFlight;
+} TSynchronizationObjects;
+
 typedef struct _FUContext {
     FUObject parent;
     TPipelineInitArgs* initArgs;
     fu_surface_t* surface;
+    TDescriptor descriptor;
+    TBuffer buffer;
+    TFrame frame;
     TPipeline pipeline;
     TPipelineIndices pipelineIndices;
-    TUniformBuffer vertices, indices;
-    /** user data */
-    TUniformBuffer* uniformBuffers;
-    /** multi sampling */
-    TImageBuffer* colorBuffer;
-    /** depth test */
-    TImageBuffer* depthBuffer;
-    /** user texture */
-    TImageBuffer* textureBuffers;
-    VkFramebuffer* framebuffers;
-    VkCommandPool pool;
-    VkCommandBuffer* commandBuffers;
-    VkSemaphore *imageAvailableSemaphores, *renderFinishedSemaphores;
-    VkFence* inFlightFences;
-    VkClearValue* clearValues;
-    uint32_t uniformBufferCount, imageBufferCount, attachmentCount, indexCount;
+    TSynchronizationObjects sync;
 } FUContext;
 bool fu_context_init_framebuffers(FUContext* ctx, fu_surface_t* surface);
 
@@ -54,7 +76,7 @@ typedef struct _fu_shader {
     uint32_t* code;
     VkShaderStageFlagBits stage;
     VkVertexInputAttributeDescription* attributes;
-    TDescriptorArgs2* descriptors;
+    // TDescriptorArgs2* descriptors;
     fu_shader_buffer_usage_t usage;
     uint32_t codeSize, stride, attributeCount;
 } fu_shader_t;

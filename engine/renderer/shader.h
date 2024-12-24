@@ -7,8 +7,16 @@ typedef struct _TSpirV {
     const uint32_t size;
     const uint32_t* code;
 } FUShaderCode;
-typedef VkShaderStageFlagBits FUShaderStage;
+// typedef VkShaderStageFlagBits FUShaderStage;
 
+typedef enum _FUShaderStageFlags {
+    FU_SHADER_STAGE_FLAG_VERTEX = VK_SHADER_STAGE_VERTEX_BIT,
+    FU_SHADER_STAGE_FLAG_TESSELLATION_CONTROL = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
+    FU_SHADER_STAGE_FLAG_TESSELLATION_EVALUATION = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
+    FU_SHADER_STAGE_FLAG_GEOMETRY = VK_SHADER_STAGE_GEOMETRY_BIT,
+    FU_SHADER_STAGE_FLAG_FRAGMENT = VK_SHADER_STAGE_FRAGMENT_BIT,
+    FU_SHADER_STAGE_FLAG_COMPUTE = VK_SHADER_STAGE_COMPUTE_BIT
+} FUShaderStageFlags;
 // FUShader* fu_shader_new_default(const char* name, VkShaderStageFlagBits stage);
 
 // int fu_shader_add_data(FUShader* shader, const char* name, size_t size, void* data, FUNotify notify);
@@ -21,7 +29,7 @@ typedef VkShaderStageFlagBits FUShaderStage;
 #endif
 
 typedef struct _FUShader {
-    void* dummy[6];
+    void* dummy[5];
 } FUShader;
 
 typedef struct _FUShaderGroup {
@@ -45,5 +53,5 @@ typedef struct _FUShaderGroup {
 } FUShaderGroup;
 
 void fu_shader_free(FUShader* shader);
-FUShader* fu_shader_new(const FUShaderCode* source, FUShaderStage stage);
+FUShader* fu_shader_new(const FUShaderCode* source, FUShaderStageFlags stage);
 void fu_shader_set_attributes(FUShader* shader, const uint32_t cnt, ...);

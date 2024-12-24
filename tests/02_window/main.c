@@ -1,17 +1,53 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "libs/stb_image.h"
+#include <GLFW/glfw3.h>
+#include <cglm/cglm.h>
 #include <fusion.h>
 
+#define DEF_IMG "E:\\Pictures\\bz_ladfdfdg_0011.jpg"
 typedef struct _TApp {
     FUApplication* app;
     FUWindow* window;
     FUContext* context;
     FUSource* timerout;
     char* title;
+    uint32_t uboIdx;
 } TApp;
 static char buff[1600];
+// #define _depth
+#ifdef _depth
+typedef struct _TVertex {
+    float position[3];
+    float color[4];
+    float uv[2];
+} TVertex;
 
+typedef struct _TUniformBufferObject {
+    alignas(16) mat4 model;
+    alignas(16) mat4 view;
+    alignas(16) mat4 proj;
+} TUniformBufferObject;
+
+static const TVertex vertices[] = {
+    { { -0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f } },
+    { { -0.5f, 0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
+    { { 0.5f, 0.5f }, { 0.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
+    { { 0.5f, -0.5f }, { 1.0f, 0.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } },
+
+    { { -0.5f, -0.5f, -0.5f }, { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f } },
+    { { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f, 1.0f } },
+    { { 0.5f, 0.5f, -0.5f }, { 0.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
+    { { 0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 1.0f, 1.0f }, { 1.0f, 1.0f } }
+};
+
+static const uint32_t indices[] = {
+    0, 1, 2, 0, 2, 3,
+    4, 5, 6, 4, 6, 7
+};
+
+#else
 typedef struct _TVertex {
     float position[3];
     float color[4];
@@ -28,6 +64,7 @@ static const uint32_t indices[] = {
     0, 1, 2,
     0, 2, 3
 };
+#endif
 
 static TApp* t_app_new()
 {
@@ -45,6 +82,19 @@ static void t_app_free(TApp* app)
 
 static bool app_timer_tick_callback(TApp* usd)
 {
+#ifdef _depth
+    TUniformBufferObject ubo = {
+        .model = GLM_MAT4_IDENTITY_INIT,
+        // .view = GLM_MAT4_IDENTITY_INIT,
+        // .proj = GLM_MAT4_IDENTITY_INIT,
+    };
+
+    glm_rotate(ubo.model, glfwGetTime() / glm_rad(10.0f), (vec3) { 0.0f, 0.0f, 1.0f });
+    glm_lookat((vec3) { 2.0f, 2.0f, 2.0f }, GLM_VEC3_ZERO, (vec3) { 0.0f, 0.0f, 1.0f }, ubo.view);
+    glm_perspective(glm_rad(30.0f), (float)0.7, 0.1f, 10.0f, ubo.proj);
+    ubo.proj[1][1] *= -1;
+    fu_context_update_uniform_buffer(usd->context, usd->uboIdx, &ubo, sizeof(ubo));
+#endif
     fu_window_present(usd->window);
     return true;
 }
@@ -176,6 +226,7 @@ static void app_init_surface(TApp* app)
         0x0000000f, 0x0003003e, 0x0000001a, 0x00000018, 0x0004003d, 0x00000007, 0x0000001e, 0x0000001d,
         0x0003003e, 0x0000001b, 0x0000001e, 0x000100fd, 0x00010038
     };
+
     const uint32_t _basic_frag[] = {
         0x07230203, 0x00010600, 0x0008000b, 0x0000000d, 0x00000000, 0x00020011, 0x00000001, 0x0006000b,
         0x00000001, 0x4c534c47, 0x6474732e, 0x3035342e, 0x00000000, 0x0003000e, 0x00000000, 0x00000001,
@@ -199,14 +250,26 @@ static void app_init_surface(TApp* app)
         .size = sizeof(_basic_frag),
     };
 #endif
-    FUShader* shaderVert = fu_shader_new(&shaderVertCode, VK_SHADER_STAGE_VERTEX_BIT);
-    FUShader* shaderFrag = fu_shader_new(&shaderFragCode, VK_SHADER_STAGE_VERTEX_BIT);
+    FUShader* shaderVert = fu_shader_new(&shaderVertCode, FU_SHADER_STAGE_FLAG_VERTEX);
+    FUShader* shaderFrag = fu_shader_new(&shaderFragCode, FU_SHADER_STAGE_FLAG_FRAGMENT);
     FUShaderGroup shaderGroup = { .vertex = shaderVert, .fragment = shaderFrag };
 
+#ifdef _depth
+    FUContextArgs args = {
+        // .depthTest = true
+    };
+    int width, height, channels;
+    fu_shader_set_attributes(shaderVert, 3, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32_SFLOAT);
+    stbi_uc* pixels = stbi_load(DEF_IMG, &width, &height, &channels, STBI_rgb_alpha);
+    app->context = fu_context_new_take(app->window, &shaderGroup, &args);
+    app->uboIdx = fu_context_add_uniform_descriptor(app->context, sizeof(TUniformBufferObject), FU_SHADER_STAGE_FLAG_VERTEX);
+    fu_context_add_sampler_descriptor(app->context, width, height, pixels);
+    stbi_image_free(pixels);
+#else
     fu_shader_set_attributes(shaderVert, 2, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT);
-
     app->context = fu_context_new_take(app->window, &shaderGroup, NULL);
-    fu_context_update_input_data(app->context, sizeof(vertices), (float*)vertices, sizeof(indices), indices);
+#endif
+    fu_context_update_input_data2(app->context, sizeof(vertices), (float*)vertices, sizeof(indices), indices);
     fu_window_add_context(app->window, app->context);
 }
 
